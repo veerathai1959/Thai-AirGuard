@@ -1,0 +1,1951 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#f4f7ff" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<title>Thai AirGuard</title>
+<link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" onerror="this.onerror=null;this.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css'" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous" onerror="document.write('<script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js&quot;><\/script>')"></script>
+<style>
+:root{--bg:#f4f7ff;--surface:#fff;--soft:#eef2ff;--line:#e2e8f5;--text:#0f1b3d;--muted:#5d6b8c;
+  --accent:#4f46e5;--accent2:#06b6d4;--on-accent:#fff;--danger:#ef4444;--fire:#e11d1d;--wind:#0284c7;--shadow:0 8px 30px rgba(40,60,130,.16);}
+[data-theme=dark]{--bg:#0b1020;--surface:#151c33;--soft:#1d2644;--line:#273158;--text:#eef2ff;--muted:#9aa6c8;
+  --accent:#818cf8;--accent2:#22d3ee;--on-accent:#0b1020;--wind:#38bdf8;--shadow:0 8px 30px rgba(0,0,0,.5);}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:"Noto Sans Thai","Sarabun",-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent2);outline-offset:2px}
+#app{position:fixed;inset:0;height:100dvh;overflow:hidden}
+#map{position:absolute;inset:0;background:var(--soft)}
+.leaflet-top.leaflet-left{top:calc(66px + env(safe-area-inset-top))}
+.leaflet-control-attribution{font-size:10px;background:var(--surface)!important;color:var(--muted)!important;border-radius:8px}
+
+.top{position:absolute;z-index:1000;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top));display:flex;
+  align-items:center;gap:8px;padding:8px 8px 8px 14px;background:var(--surface);border:1px solid var(--line);
+  border-radius:18px;box-shadow:var(--shadow);transition:transform .25s,opacity .25s}
+.brand{flex:1;font-weight:800;font-size:17px;display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
+.logo{width:30px;height:30px;border-radius:9px;flex:none;display:block;box-shadow:0 2px 8px rgba(79,70,229,.28)}
+.logo svg{display:block;width:100%;height:100%}
+.live-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:rgba(239,68,68,.12);color:#ef4444;font-size:10.5px;font-weight:800;white-space:nowrap}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 0 rgba(239,68,68,.7);animation:pulse 1.5s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.7)}70%{box-shadow:0 0 0 6px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+.ib{position:relative;width:40px;height:40px;border-radius:12px;border:0;background:var(--soft);font-size:18px;display:grid;place-items:center;flex:none}
+.ib:active{transform:scale(.93)}
+.badge[hidden]{display:none!important}
+#map.sat .leaflet-tile-pane{filter:none!important}
+[data-theme=dark] #map:not(.sat) .leaflet-tile-pane .leaflet-layer:not(.nasa-gibs-layer){filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.85) saturate(.7)}
+.badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--danger);
+  color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center}
+.ib.ring{animation:ring 1.4s ease-in-out infinite}
+@keyframes ring{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}50%{box-shadow:0 0 0 7px rgba(239,68,68,0)}}
+@media(prefers-reduced-motion:reduce){.ib.ring,.live-dot{animation:none}.page,.top,.layers,.sheet,.exit-full{transition:none!important}}
+
+.layers{position:absolute;z-index:900;right:12px;top:calc(76px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:6px;
+  transition:transform .25s,opacity .25s}
+.lay{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 12px;font-size:12px;font-weight:600;
+  display:flex;align-items:center;gap:6px;box-shadow:var(--shadow)}
+.lay i{width:10px;height:10px;border-radius:50%}
+.lay[aria-pressed=false]{opacity:.5}
+
+.sheet{position:absolute;z-index:900;left:0;right:0;bottom:0;max-height:58dvh;overflow:auto;background:var(--surface);
+  border-radius:24px 24px 0 0;border-top:1px solid var(--line);box-shadow:var(--shadow);padding:14px 16px calc(16px + env(safe-area-inset-bottom));
+  transition:transform .25s,opacity .25s}
+
+.warn-banner{margin-bottom:10px;padding:10px 12px;border-radius:13px;font-size:12px;font-weight:700;line-height:1.45;display:flex;align-items:flex-start;gap:8px}
+.warn-banner.stale{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.45);color:#b91c1c}
+[data-theme=dark] .warn-banner.stale{color:#fca5a5}
+.warn-banner.partial{background:rgba(234,179,8,.16);border:1px solid rgba(234,179,8,.5);color:#92400e}
+[data-theme=dark] .warn-banner.partial{color:#fde047}
+
+#app.fullmap .top{transform:translateY(-160%);opacity:0;pointer-events:none}
+#app.fullmap .layers{transform:translateX(140%);opacity:0;pointer-events:none}
+#app.fullmap .sheet{transform:translateY(110%);opacity:0;pointer-events:none}
+#app.fullmap .leaflet-top.leaflet-left{top:calc(12px + env(safe-area-inset-top))}
+
+.exit-full{position:absolute;z-index:1000;right:12px;bottom:calc(16px + env(safe-area-inset-bottom));border:1px solid var(--line);
+  background:var(--surface);color:var(--text);border-radius:14px;padding:9px 13px;font-size:12.5px;font-weight:700;
+  box-shadow:var(--shadow);display:none;align-items:center;gap:6px}
+#app.fullmap .exit-full{display:flex}
+
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--soft);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600}
+.chip.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.chip.add{background:transparent;border-style:dashed;color:var(--accent)}
+.hero{display:grid;grid-template-columns:1.2fr 1fr;gap:10px}
+.card{border-radius:18px;padding:14px;background:var(--soft)}
+.pmcard{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.pmcard.dark{color:#1d1a05;text-shadow:none}
+.src-tag{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700;background:rgba(15,23,42,.22);color:#fff}
+.pmcard.dark .src-tag{background:rgba(29,26,5,.14);color:#1d1a05}
+.pmcard.est-card .src-tag{background:rgba(15,23,42,.1);color:var(--muted)}
+.big{font-size:38px;font-weight:800;line-height:1}
+.sm{font-size:12px;opacity:.92;margin-top:4px}
+.fcard{position:relative;overflow:hidden;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.45);
+  background:radial-gradient(120% 85% at 92% 100%,rgba(254,240,138,.28) 0%,rgba(251,146,60,.16) 42%,transparent 75%),
+    linear-gradient(135deg,#7f1d1d 0%,#dc2626 52%,#ea580c 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22)}
+.fcard:after{content:"🔥";position:absolute;right:-6px;bottom:-16px;font-size:58px;line-height:1;opacity:.22;pointer-events:none}
+.fcard>*{position:relative;z-index:1}
+.fcard .big{color:#fff}
+.fcard .sm{color:rgba(255,255,255,.96);opacity:1}
+.fgap{display:flex;gap:10px;align-items:baseline;margin-top:6px;flex-wrap:wrap}
+.fgap span{font-size:12.5px;color:rgba(255,255,255,.95);font-weight:600}
+.fgap strong{font-size:20px;font-weight:800;color:#fff}
+.fbox{margin-top:10px;padding:11px 12px;border-radius:14px;background:var(--soft);border:1px solid var(--line)}
+.fbox-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:700;margin-bottom:6px;flex-wrap:wrap}
+.fbox-h small{color:var(--muted);font-weight:600}
+.fitem{padding:8px 10px;border-radius:11px;background:var(--surface);border:1px solid var(--line);margin-top:6px;font-size:12px;line-height:1.45}
+.fitem-top{display:flex;align-items:center;justify-content:space-between;gap:6px;font-weight:700;flex-wrap:wrap}
+.fitem-coord{color:var(--accent);font-variant-numeric:tabular-nums;font-size:11.5px}
+.fitem-meta{color:var(--muted);margin-top:2px}
+.fitem-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.fitem-btn{border:1px solid var(--line);background:var(--soft);border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700;text-decoration:none;color:var(--text);display:inline-flex;align-items:center;gap:4px}
+.fitem-btn.nav{background:#0284c7;border-color:#0284c7;color:#fff}
+.wbar{margin-top:10px;padding:10px 12px;border-radius:14px;background:var(--soft);display:flex;align-items:center;gap:10px;font-size:13px}
+.wbar b{color:var(--wind)}
+.trend-box{margin-top:10px;padding:11px 12px;border-radius:14px;background:var(--soft);border:1px solid var(--line)}
+.trend-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:700;margin-bottom:6px;flex-wrap:wrap}
+.trend-h small{color:var(--muted);font-weight:600}
+.trend-canvas{width:100%;height:110px;display:block;border-radius:10px;background:var(--surface);border:1px solid var(--line)}
+.trend-leg{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:11px;color:var(--muted)}
+.trend-leg i{display:inline-block;width:10px;height:3px;border-radius:2px;vertical-align:middle;margin-right:4px}
+.note{margin:10px 0 0;font-size:13px;line-height:1.6;color:var(--muted)}
+.note b{color:var(--text)}
+.status{margin-top:8px;font-size:11.5px;color:var(--muted)}
+.status.err{color:var(--danger)}
+.row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn{flex:1;min-width:92px;padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--soft);font-weight:700;font-size:14px}
+.btn.pri{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:0}
+.btn.live{background:linear-gradient(135deg,#dc2626,#ea580c);color:#fff;border:0}
+.btn.dng{color:var(--danger)}
+.btn:disabled{opacity:.6}
+.btn:active{transform:scale(.97)}
+
+.page{position:absolute;inset:0;z-index:2000;background:var(--bg);display:flex;flex-direction:column;
+  transform:translateY(100%);visibility:hidden;transition:transform .25s,visibility .25s}
+.page.open{transform:none;visibility:visible}
+.ph{display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top)) 14px 12px;background:var(--surface);border-bottom:1px solid var(--line)}
+.ph h2{margin:0;font-size:17px;flex:1}
+.pb{flex:1;overflow:auto;padding:14px 14px calc(24px + env(safe-area-inset-bottom))}
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+.sec h3{margin:0 0 10px;font-size:14px}
+.subsec{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.subsec h4{margin:0 0 6px;font-size:13px;color:var(--accent)}
+.guide-list{margin:6px 0 0;padding-left:18px;font-size:12.5px;line-height:1.65;color:var(--muted)}
+.guide-list b{color:var(--text)}
+.f{margin-bottom:12px}
+.f label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:5px}
+input[type=text],input[type=number],input[type=password],select{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);outline:none}
+input:focus,select:focus{border-color:var(--accent)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0}
+.sw small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+.sw input{width:46px;height:26px;appearance:none;-webkit-appearance:none;background:var(--line);border-radius:99px;position:relative;transition:.2s;flex:none}
+.sw input:before{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.sw input:checked{background:var(--accent)}
+.sw input:checked:before{transform:translateX(20px)}
+.item{display:flex;align-items:center;gap:10px;padding:11px;border-radius:14px;background:var(--soft);margin-bottom:8px}
+.item .m{flex:1;min-width:0}
+.item .t{font-weight:700;font-size:14px}
+.item .d{font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis}
+.item.unread{border-left:4px solid var(--accent)}
+.x{border:0;background:transparent;color:var(--danger);font-size:18px;padding:6px}
+.res{display:block;width:100%;text-align:left;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--bg);margin-top:6px;font-size:13px}
+.empty{text-align:center;color:var(--muted);padding:26px 10px;font-size:14px}
+details summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--accent);padding:4px 0}
+.draft{padding:10px 12px;border-radius:12px;background:var(--soft);font-size:13px;margin-bottom:12px}
+
+.pickbar{position:absolute;z-index:2500;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom));background:var(--surface);
+  border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--shadow);display:none}
+.pickbar.show{display:block}
+.pin{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:12px;color:#fff;
+  border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35);text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.pin.dk{color:#1d1a05;text-shadow:none}
+.wpin{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:999px;background:var(--surface);color:var(--text);
+  border:2px solid var(--wind);box-shadow:0 3px 10px rgba(0,0,0,.22);font-size:11px;font-weight:800;white-space:nowrap;transform:translate(-50%,-50%)}
+.warr{display:inline-block;font-size:13px;line-height:1;color:var(--wind)}
+.home{font-size:26px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));line-height:1}
+#map.picking{cursor:crosshair}
+#toast{position:absolute;z-index:4000;left:50%;top:calc(76px + env(safe-area-inset-top));transform:translate(-50%,-10px);background:var(--text);color:var(--bg);
+  padding:10px 16px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;max-width:90%;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.disc{margin-top:10px;font-size:11px;line-height:1.5;color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="map"></div>
+
+  <header class="top">
+    <div class="brand"><span class="logo"></span>Thai AirGuard <span class="live-pill" id="livePill"><span class="live-dot"></span>Near Real Time · ≤24 ชม.</span></div>
+    <button class="ib" id="bFull" aria-label="แผนที่เต็มจอ">⛶</button>
+    <button class="ib" id="bTheme" aria-label="สลับโหมดมืด/สว่าง">🌙</button>
+    <button class="ib" id="bNoti" aria-label="การแจ้งเตือน">🔔<span class="badge" id="badge" hidden>0</span></button>
+    <button class="ib" id="bSet" aria-label="ตั้งค่า">⚙️</button>
+  </header>
+
+  <div class="layers">
+    <button class="lay" id="lLoc" aria-pressed="true"><i style="background:#2563eb"></i>ตำแหน่งฉัน</button>
+    <button class="lay" id="lPm" aria-pressed="true"><i style="background:#22c55e"></i>PM2.5</button>
+    <button class="lay" id="lFire" aria-pressed="true"><i style="background:var(--fire)"></i>จุดความร้อน</button>
+    <button class="lay" id="lWind" aria-pressed="true"><i style="background:var(--wind)"></i>ทิศทางลม</button>
+    <button class="lay" id="lBase"><i style="background:#0ea5e9"></i><span>🛰️ ดาวเทียม</span></button>
+    <button class="lay" id="lGibs" aria-pressed="false"><i style="background:#a78bfa"></i>ภาพ NASA</button>
+  </div>
+
+  <button type="button" class="exit-full" id="bExitFull" aria-label="ออกจากโหมดเต็มจอ">⛶ หน้าจอปกติ</button>
+
+  <section class="sheet" id="sheet" aria-live="polite"></section>
+
+  <div class="pickbar" id="pickbar">
+    <div id="pickTxt" style="font-size:14px;font-weight:600">แตะบนแผนที่เพื่อปักหมุด</div>
+    <div class="row"><button class="btn" id="pickNo">ยกเลิก</button><button class="btn pri" id="pickOk" disabled>ใช้ตำแหน่งนี้</button></div>
+  </div>
+
+  <!-- แจ้งเตือน -->
+  <div class="page" id="pNoti">
+    <div class="ph"><button class="ib" data-close aria-label="ปิด">✕</button><h2>การแจ้งเตือน</h2><button class="btn" id="bClearNoti" style="flex:none;padding:8px 12px">ล้างทั้งหมด</button><button class="ib" data-home aria-label="กลับหน้าหลัก">🏠</button></div>
+    <div class="pb" id="notiList"></div>
+  </div>
+
+  <!-- เพิ่มพื้นที่ -->
+  <div class="page" id="pAdd">
+    <div class="ph"><button class="ib" data-close aria-label="ปิด">✕</button><h2>เพิ่มพื้นที่</h2><button class="ib" data-home aria-label="กลับหน้าหลัก">🏠</button></div>
+    <div class="pb">
+      <div class="sec">
+        <h3>เลือกพื้นที่ ตำบล → อำเภอ → จังหวัด</h3>
+        <div class="f"><label for="tIn">1. ตำบล / แขวง</label>
+          <input type="text" id="tIn" placeholder="พิมพ์ชื่อตำบล เช่น สุเทพ" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" />
+          <div id="tSug"></div></div>
+        <div class="f"><label for="dIn">2. อำเภอ / เขต</label>
+          <input type="text" id="dIn" placeholder="พิมพ์ชื่ออำเภอ เช่น เมืองเชียงใหม่" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" />
+          <div id="dSug"></div></div>
+        <div class="f"><label for="pIn">3. จังหวัด</label>
+          <input type="text" id="pIn" placeholder="พิมพ์ชื่อจังหวัด เช่น เชียงใหม่" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" />
+          <div id="pSug"></div></div>
+        <div class="status" id="pdStat">กำลังโหลดรายชื่อตำบลทั่วประเทศ…</div>
+        <button class="btn pri" id="bFind" type="button" style="width:100%;margin-top:10px">🔎 หาตำแหน่งจากชื่อที่พิมพ์</button>
+        <div id="gRes"></div>
+      </div>
+      <div class="sec">
+        <div class="row" style="margin:0"><button class="btn" id="bGps">📡 ตำแหน่งปัจจุบัน (GPS)</button><button class="btn" id="bPick">🗺️ ปักหมุดบนแผนที่</button></div>
+        <details open style="margin-top:12px"><summary>ค้นหาหมู่บ้าน / ชื่อสถานที่อื่น</summary>
+          <div class="row"><input type="text" id="q" placeholder="เช่น บ้านแม่สลองนอก เชียงราย" enterkeyhint="search" />
+          <button class="btn pri" id="bQ" style="flex:none">ค้นหา</button></div><div id="qRes"></div></details>
+      </div>
+      <div class="draft" id="draft">ยังไม่ได้เลือกตำแหน่ง</div>
+      <div class="f"><label for="aLabel">ชื่อเรียกพื้นที่</label><input type="text" id="aLabel" placeholder="เช่น บ้าน, ที่ทำงาน" maxlength="40" /></div>
+      <button class="btn pri" id="bSave" style="width:100%">บันทึกพื้นที่</button>
+    </div>
+  </div>
+
+  <!-- ตั้งค่า -->
+  <div class="page" id="pSet">
+    <div class="ph"><button class="ib" data-close aria-label="ปิด">✕</button><h2>ตั้งค่า</h2><button class="ib" data-home aria-label="กลับหน้าหลัก">🏠</button></div>
+    <div class="pb">
+      <div class="sec"><h3>พื้นที่ของฉัน</h3><div id="areaList"></div>
+        <button class="btn pri" id="bAdd" style="width:100%">＋ เพิ่มพื้นที่</button></div>
+      <div class="sec"><h3>รอบสแกนและเงื่อนไขแจ้งเตือน</h3>
+        <div class="f"><label for="sRtMin">รอบสแกนอัตโนมัติ</label>
+          <select id="sRtMin">
+            <option value="3">ทุก 3 นาที</option>
+            <option value="5">ทุก 5 นาที (แนะนำ)</option>
+            <option value="10">ทุก 10 นาที</option>
+            <option value="15">ทุก 15 นาที</option>
+          </select></div>
+        <div class="two">
+          <div class="f"><label for="sPm">PM2.5 ตั้งแต่ (µg/m³)</label><input type="number" id="sPm" min="1" max="500" step="0.5" /></div>
+          <div class="f"><label for="sRad">จุดความร้อนรอบพื้นที่ (กม.)</label><input type="number" id="sRad" min="15" max="300" /></div>
+        </div>
+        <label class="sw"><span>แจ้งเตือนผ่านเบราว์เซอร์<small>ทำงานเมื่อเปิดหน้านี้ไว้ตามรอบสแกน</small></span><input type="checkbox" id="sBrowser" /></label>
+        <p class="note" style="margin-top:6px"><b>ข้อจำกัดบน iPhone / iPad:</b> การแจ้งเตือนผ่านเบราว์เซอร์ (<code>Notification</code>) ทำงานได้เฉพาะเมื่อเพิ่มเว็บลงหน้าจอโฮมเป็น <b>PWA</b> และ<b>เปิดแอปค้างไว้</b>เท่านั้น หากปิดแอปจะไม่แจ้งเตือนพื้นหลัง</p>
+        <button class="btn pri" id="bSaveSet" style="width:100%;margin-top:10px">บันทึกเงื่อนไข</button>
+        <p class="note">อีเมล / SMS / LINE ต้องมีเซิร์ฟเวอร์ส่งแทน (เว็บเปล่าส่งเองไม่ได้) จึงยังไม่เปิดให้ใช้ในหน้านี้</p>
+      </div>
+      <div class="sec"><h3>แหล่งข้อมูลจุดความร้อนและ Proxy / Worker</h3>
+        <div class="f"><label for="sKey">NASA FIRMS MAP_KEY (ใช้เมื่อเรียก FIRMS ตรงจากเครื่อง)</label><input type="password" id="sKey" autocomplete="off" placeholder="วางคีย์ที่นี่ หรือเว้นว่างหากให้ Worker จัดการคีย์" /></div>
+        <div class="f"><label for="sProxy">Proxy / Worker URL (รองรับทั้ง Air4Thai และ FIRMS)</label><input type="text" id="sProxy" autocomplete="off" placeholder="เช่น https://airguard-proxy.your-name.workers.dev/?url=" /></div>
+        <p class="note"><b>ความปลอดภัยของ MAP_KEY:</b> คีย์ที่ใส่ในเครื่องถูกเก็บใน localStorage ของเบราว์เซอร์นี้และแนบไปกับ URL ของ FIRMS แนะนำให้ใช้ Worker เก็บคีย์ฝั่งเซิร์ฟเวอร์เป็นหลัก และไม่แชร์เครื่อง/ไฟล์ที่มีคีย์ให้ผู้อื่น</p>
+        <p class="note">ใช้ <b>NOAA-20</b> และ <b>NOAA-21</b> เป็นหลัก (SNPP เป็นแหล่งเสริม) ขอข้อมูล 2 วันแล้วกรองอายุไม่เกิน 24 ชม. เฉพาะ<b>ประเทศไทยและชายแดนประเทศเพื่อนบ้านโดยรอบ</b></p>
+      </div>
+      <div class="sec">
+        <h3>PWA โหลดไฟล์และคู่มือติดตั้ง</h3>
+        <p class="note" style="margin:0 0 10px">เพื่อให้ติดตั้งเป็นแอปและใช้ออฟไลน์ได้ ให้วาง <b>index.html</b>, <b>manifest.json</b> และ <b>sw.js</b> ไว้โฟลเดอร์เดียวกันบนโฮสต์ HTTPS (Service Worker ต้องเป็นไฟล์จริงบนโดเมนเดียวกัน)</p>
+        <div class="row" style="margin-top:0">
+          <button type="button" class="btn pri" id="bDlHtml">⬇️ โหลด index.html</button>
+          <button type="button" class="btn" id="bDlSw">⬇️ โหลด manifest + sw.js</button>
+        </div>
+        <div class="subsec">
+          <h4>1. ติดตั้งบนเซิร์ฟเวอร์ / โฮสต์ (HTTPS)</h4>
+          <ol class="guide-list">
+            <li>อัปโหลดทั้ง 3 ไฟล์ขึ้นเซิร์ฟเวอร์ที่รองรับ <b>HTTPS</b> เช่น GitHub Pages, Cloudflare Pages หรือเว็บเซิร์ฟเวอร์ทั่วไป</li>
+            <li>เปิดผ่าน <code>https://</code> เพื่อให้ Service Worker และ GPS ทำงานสมบูรณ์</li>
+            <li>หากสถานี Air4Thai ติดบล็อก CORS หรือต้องการซ่อน FIRMS MAP_KEY ให้ตั้งค่า Proxy / Worker ด้านบน</li>
+          </ol>
+        </div>
+        <div class="subsec">
+          <h4>2. ติดตั้งบนมือถือ (Android / iPhone)</h4>
+          <ol class="guide-list">
+            <li><b>Android (Chrome):</b> แตะเมนู <b>⋮</b> → <b>ติดตั้งแอป</b> หรือ <b>เพิ่มไปยังหน้าจอหลัก</b></li>
+            <li><b>iPhone (Safari):</b> แตะ <b>แชร์</b> → <b>เพิ่มไปยังหน้าจอโฮม</b></li>
+          </ol>
+        </div>
+        <div class="subsec">
+          <h4>3. ติดตั้งบนแท็บเล็ต / iPad</h4>
+          <ol class="guide-list">
+            <li><b>iPad (Safari):</b> แตะ <b>แชร์</b> → <b>เพิ่มไปยังหน้าจอโฮม</b></li>
+            <li><b>Android Tablet (Chrome):</b> เมนู <b>⋮</b> → <b>ติดตั้งแอป</b></li>
+          </ol>
+        </div>
+      </div>
+      <div class="sec"><h3>เกี่ยวกับข้อมูลและโหมดออฟไลน์</h3>
+        <p class="note" style="margin:0">PM2.5: สถานีตรวจวัดกรมควบคุมมลพิษ (Air4Thai) ใช้เฉพาะสถานีที่สดภายใน 3 ชม. และอยู่ห่างไม่เกิน 50 กม. · พยากรณ์/ย้อนหลัง: Open-Meteo (CAMS) · จุดความร้อน: NASA FIRMS (VIIRS) NOAA-20/NOAA-21 เป็นหลัก ดึงย้อนหลัง 2 วันและกรองอายุ ≤ 24 ชม. เฉพาะไทยและชายแดนใกล้เคียง</p>
+        <p class="note" style="margin-top:8px"><b>โหมดออฟไลน์:</b> เมื่อไม่มีอินเทอร์เน็ต แผนที่ (ไทล์แผนที่/ภาพดาวเทียม) การค้นหาสถานที่ และข้อมูลสดจากบริการภายนอกอาจใช้ไม่ได้หรือแสดงได้เฉพาะข้อมูลแคชที่มีอยู่เดิม ระบบจะไม่ใช้ข้อมูลเก่า/แคชยิงแจ้งเตือนสด</p>
+        <p class="disc"><b>ข้อจำกัด:</b> ข้อมูลจุดความร้อนจากดาวเทียมมีดีเลย์ราว 3 ชม. และดาวเทียมผ่านเพียงบางช่วงของวัน การ <b>ไม่พบจุดความร้อนไม่ได้หมายความว่าไม่มีไฟ</b> แต่ละจุดคือพิกเซล VIIRS ขนาดราว 375 ม. ไม่ใช่ขนาดพื้นที่เผาไหม้จริง แอปนี้ไม่ใช่ข้อมูลทางการ โปรดใช้ประกอบกับประกาศของหน่วยงานรัฐ และโทร 1784 / 191 เมื่อพบเหตุไฟไหม้</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" role="status"></div>
+</div>
+
+<script>addEventListener("load",()=>{if(typeof L==="undefined")document.getElementById("map").innerHTML='<div style="padding:96px 20px;text-align:center;color:var(--muted)">โหลดไลบรารีแผนที่ไม่สำเร็จ (อาจอยู่ในโหมดออฟไลน์หรือ CDN ถูกบล็อก) — แผนที่และข้อมูลสดจากบริการภายนอกอาจใช้ไม่ได้ชั่วคราว กดปุ่ม <b>⚡ สแกนใหม่</b> เมื่อออนไลน์</div>'})</script>
+<script>
+const CFG={proxy:"",realtimeMin:5,maxStationKm:50,maxStationAgeHours:3,maxFutureSkewMinutes:15,maxFireAgeHours:24,freshFireHours:3,alertFireAgeHours:12,staleWarnMinutes:30,nearFireKm:15,farFireKm:30,windConeDeg:35,maxHourlyAreas:4,tileUrl:"",tileAttr:""};
+/* กรอบพิกัดครอบคลุมประเทศไทยและชายแดนประเทศเพื่อนบ้านโดยรอบ (Lat 5.0°N–21.0°N, Lng 96.5°E–107.0°E) */
+const TH_BORDER_BBOX="96.5,5.0,107.0,21.0";
+const SCOPE_LABEL="ไทยและชายแดนใกล้เคียง";
+const SAT_PRIORITY={VIIRS_NOAA20_NRT:1,VIIRS_NOAA21_NRT:2,VIIRS_SNPP_NRT:3};
+const satShortLabel=sat=>{
+  if(sat==="VIIRS_NOAA20_NRT") return "NOAA-20 (หลัก)";
+  if(sat==="VIIRS_NOAA21_NRT") return "NOAA-21 (หลัก)";
+  if(sat==="VIIRS_SNPP_NRT") return "Suomi NPP (เสริม)";
+  return sat||"VIIRS";
+};
+const DEFAULT_BKK_AREA={id:"default_bkk",label:"กรุงเทพมหานคร",lat:13.7563,lng:100.5018,desc:"ศูนย์กลางกรุงเทพมหานคร (ค่าเริ่มต้น)",isDefault:true};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const hasMap=()=>typeof L!=="undefined"&&typeof map!=="undefined"&&map;
+
+function sanitizeCoord(latRaw,lngRaw){
+  if(latRaw===null||latRaw===undefined||latRaw===""||lngRaw===null||lngRaw===undefined||lngRaw==="") return null;
+  const lat=+latRaw, lng=+lngRaw;
+  if(!isFinite(lat)||!isFinite(lng)) return null;
+  if(lat===0&&lng===0) return null;
+  if(lat<-90||lat>90||lng<-180||lng>180) return null;
+  return {lat:Math.round(lat*1e6)/1e6,lng:Math.round(lng*1e6)/1e6};
+}
+const validLatLng=(lat,lng)=>Boolean(sanitizeCoord(lat,lng));
+
+function googleMapsNavUrl(latRaw,lngRaw,originCoord=null){
+  const dest=sanitizeCoord(latRaw,lngRaw);
+  if(!dest) return null;
+  const params=new URLSearchParams({api:"1",destination:`${dest.lat.toFixed(6)},${dest.lng.toFixed(6)}`,travelmode:"driving"});
+  const orig=originCoord&&sanitizeCoord(originCoord.lat,originCoord.lng);
+  if(orig) params.set("origin",`${orig.lat.toFixed(6)},${orig.lng.toFixed(6)}`);
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
+}
+
+let lsCorrupt=false;
+function load(k,d){
+  try{
+    const raw=localStorage.getItem(k);
+    if(raw===null) return d;
+    const v=JSON.parse(raw);
+    if(v===null||v===undefined) return d;
+    return v;
+  }catch{
+    lsCorrupt=true;
+    try{localStorage.removeItem(k)}catch{}
+    return d;
+  }
+}
+function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+
+const ME_ID="me_gps";
+const rawAreas=load("ag.areas",[]);
+const normAreas=Array.isArray(rawAreas)
+  ?rawAreas.map(x=>{
+      const c=x&&sanitizeCoord(x.lat,x.lng);
+      return c?{...x,id:String(x.id),label:String(x.label||"พื้นที่ของฉัน").slice(0,40),lat:c.lat,lng:c.lng}:null;
+    }).filter(Boolean):[];
+const rawSet=load("ag.set",{});
+const savedSet=(rawSet&&typeof rawSet==="object"&&!Array.isArray(rawSet))?rawSet:{};
+if(savedSet.radius===100||savedSet.radius===undefined) savedSet.radius=CFG.farFireKm;
+const rawSent=load("ag.sent",{});
+const safeSent=(rawSent&&typeof rawSent==="object"&&!Array.isArray(rawSent))?rawSent:{};
+const rawNoti=load("ag.noti",[]);
+const safeNoti=Array.isArray(rawNoti)?rawNoti:[];
+
+/* โหลดจุดความร้อนย้อนหลังข้ามการเปิดแอป (ไม่ใช้ยิงแจ้งเตือนสด) */
+const MAX_PERSISTED_FIRE_FETCH_AGE_MS=6*3600000;
+let initialFires=[], initialHasFireSnapshot=false, initialFireMode="history24h", initialFireFromCache=false;
+{
+  const fCache=load("ag.fires_last",null);
+  if(fCache&&typeof fCache==="object"&&Array.isArray(fCache.list)&&typeof fCache.ts==="number"&&isFinite(fCache.ts)&&!isFutureTimestamp(fCache.ts)&&(Date.now()-fCache.ts)<=MAX_PERSISTED_FIRE_FETCH_AGE_MS){
+    const validItems=fCache.list.filter(f=>{
+      if(!f||!validLatLng(f.lat,f.lng)) return false;
+      const age=parseFirmsUtcAgeHours(f.date,f.t);
+      if(age===null||age>CFG.maxFireAgeHours) return false;
+      f.ageHours=age;
+      return true;
+    });
+    if(validItems.length||fCache.emptySnapshot===true){
+      initialFires=validItems;
+      initialHasFireSnapshot=true;
+      initialFireMode=fCache.mode==="realtime"&&validItems.some(x=>x.ageHours<=CFG.freshFireHours)?"realtime":"history24h";
+      initialFireFromCache=true;
+    }
+  }else if(fCache!==null){
+    try{localStorage.removeItem("ag.fires_last")}catch{}
+  }
+}
+
+const S={
+  areas:normAreas,noti:safeNoti,sent:safeSent,
+  set:Object.assign({pm:37.5,radius:CFG.farFireKm,realtimeMin:CFG.realtimeMin,browser:false,key:"",proxy:"",base:"road",gibs:false,
+    theme:matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"},savedSet),
+  sel:String(load("ag.sel",DEFAULT_BKK_AREA.id)),
+  mePos:null,stations:[],model:{},series:{},wind:{},
+  fires:initialFires,hasFireSnapshot:initialHasFireSnapshot,fireMode:initialFireMode,fireFromCache:initialFireFromCache,
+  revCache:{},revFail:{},
+  areaLastOk:{},
+  areaMwStatus:{},
+  lay:{pm:true,fire:true,wind:true},
+  st:{
+    scanning:false,air:"กำลังโหลดค่าฝุ่น…",
+    fire:`กำลังสแกนจุดความร้อน NOAA-20 / NOAA-21 เฉพาะ${SCOPE_LABEL}…`,
+    time:null,lastOkTime:null,
+    lastOkBySource:{air:null,fire:null,mw:null},
+    airErr:false,fireErr:false,mwErr:false,offline:!navigator.onLine
+  },
+  draft:null,fullMap:false
+};
+if(typeof S.set.pm!=="number"||!isFinite(S.set.pm)||S.set.pm<=0) S.set.pm=37.5;
+if(typeof S.set.radius!=="number"||!isFinite(S.set.radius)||S.set.radius<=0) S.set.radius=CFG.farFireKm;
+if(![3,5,10,15].includes(Number(S.set.realtimeMin))) S.set.realtimeMin=CFG.realtimeMin;
+if(typeof S.set.proxy!=="string") S.set.proxy="";
+store("ag.set",S.set); store("ag.sent",S.sent);
+try{localStorage.removeItem("ag.cache")}catch{}
+
+const getRefreshMs=()=>Math.max(3,Number(S.set.realtimeMin)||CFG.realtimeMin)*60*1000;
+const getProxyPrefix=()=>String((S.set.proxy||CFG.proxy||"").trim());
+const getNearKm=()=>CFG.nearFireKm;
+const getFarKm=()=>Math.max(getNearKm(),Number(S.set.radius)||CFG.farFireKm);
+
+function markAreaSourceOk(areaId,source,tsMs=Date.now()){
+  const key=String(areaId||"");
+  if(!key||!source) return;
+  if(!S.areaLastOk[key]) S.areaLastOk[key]={};
+  S.areaLastOk[key][source]=tsMs;
+}
+function getAreaSourceLastOk(areaId,source){
+  const key=String(areaId||"");
+  const rec=S.areaLastOk[key];
+  if(rec&&typeof rec[source]==="number"&&isFinite(rec[source])&&rec[source]>0&&!isFutureTimestamp(rec[source])){
+    return new Date(rec[source]);
+  }
+  return null;
+}
+
+function applySharedAreaFromHash(){
+  try{
+    const h=location.hash||"";
+    const m=h.match(/area=([^&]+)/);
+    if(!m) return null;
+    const parts=decodeURIComponent(m[1]).split("|");
+    const coord=sanitizeCoord(parts[0],parts[1]);
+    if(!coord) return null;
+    const lbl=String(parts[2]||"พื้นที่แชร์").replace(/[^\p{L}\p{N}\s._-]/gu,"").trim().slice(0,40)||"พื้นที่แชร์";
+    const existing=S.areas.find(a=>hav(a.lat,a.lng,coord.lat,coord.lng)<0.2);
+    if(existing){S.sel=String(existing.id);store("ag.sel",S.sel);return existing}
+    const created={id:"shared_"+Date.now(),label:lbl,lat:coord.lat,lng:coord.lng,desc:"เปิดจากลิงก์แชร์",shared:true};
+    S.areas.push(created);store("ag.areas",S.areas);S.sel=String(created.id);store("ag.sel",S.sel);
+    return created;
+  }catch{return null}
+}
+function shareArea(a){
+  const coord=a&&sanitizeCoord(a.lat,a.lng);
+  if(!coord){toast("ไม่พบพิกัดสำหรับแชร์");return}
+  const cleanLabel=String(a.label||"พื้นที่").replace(/[^\p{L}\p{N}\s._-]/gu,"").trim().slice(0,40)||"พื้นที่";
+  const payload=encodeURIComponent(`${coord.lat.toFixed(5)}|${coord.lng.toFixed(5)}|${cleanLabel}`);
+  const url=`${location.origin}${location.pathname}#area=${payload}`;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(()=>toast("คัดลอกลิงก์พื้นที่แล้ว")).catch(()=>prompt("คัดลอกลิงก์พื้นที่:",url));
+  }else prompt("คัดลอกลิงก์พื้นที่:",url);
+}
+
+const LV=[
+ {m:15,n:"ดีมาก",c:"#06b6d4",t:"อากาศดีมาก ทำกิจกรรมกลางแจ้งได้ตามปกติ"},
+ {m:25,n:"ดี",c:"#22c55e",t:"อากาศดี ทำกิจกรรมกลางแจ้งได้ตามปกติ"},
+ {m:37.5,n:"ปานกลาง",c:"#eab308",dk:1,t:"กลุ่มเสี่ยง (เด็ก ผู้สูงอายุ ผู้มีโรคทางเดินหายใจ) ควรลดกิจกรรมกลางแจ้งที่ออกแรงมาก"},
+ {m:75,n:"เริ่มมีผลต่อสุขภาพ",c:"#f97316",t:"ควรลดกิจกรรมกลางแจ้ง และสวมหน้ากาก N95 เมื่ออยู่นอกอาคาร"},
+ {m:1e9,n:"มีผลต่อสุขภาพ",c:"#ef4444",t:"งดกิจกรรมกลางแจ้ง สวมหน้ากาก N95 และอยู่ในอาคารที่ปิดมิดชิด"}];
+const lvl=pm=>LV.find(l=>pm<=l.m);
+const lvlIdx=pm=>LV.findIndex(l=>pm<=l.m);
+
+const hav=(a,b,c,d)=>{const r=Math.PI/180,x=Math.sin((c-a)*r/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin((d-b)*r/2)**2;return 12742*Math.asin(Math.sqrt(x))};
+const bearing=(a,b,c,d)=>{
+  const r=Math.PI/180,y=Math.sin((d-b)*r)*Math.cos(c*r);
+  const x=Math.cos(a*r)*Math.sin(c*r)-Math.sin(a*r)*Math.cos(c*r)*Math.cos((d-b)*r);
+  return ((Math.atan2(y,x)*180/Math.PI)%360+360)%360;
+};
+const angleDiff=(a,b)=>{const d=Math.abs(((a-b)%360+360)%360);return d>180?360-d:d};
+const isWindAlignedRough=(fLat,fLng,aLat,aLng,windFromDeg)=>{
+  if(!isFinite(windFromDeg)) return false;
+  const toArea=bearing(fLat,fLng,aLat,aLng);
+  const windTo=(((Number(windFromDeg)+180)%360)+360)%360;
+  return angleDiff(windTo,toArea)<=CFG.windConeDeg;
+};
+
+const DIRS=["เหนือ","ตะวันออกเฉียงเหนือ","ตะวันออก","ตะวันออกเฉียงใต้","ใต้","ตะวันตกเฉียงใต้","ตะวันตก","ตะวันตกเฉียงเหนือ"];
+const degToDir=deg=>{const d=((Number(deg)%360)+360)%360;return DIRS[Math.round(d/45)%8]};
+const windToLabel=deg=>{const d=((Number(deg)%360)+360)%360;return `พัดจากทิศ${degToDir(d)} ไปทิศ${degToDir((d+180)%360)}`};
+const arrowCssDeg=fromDeg=>{const toDeg=(((Number(fromDeg)+180)%360)+360)%360;return (toDeg-90+360)%360};
+
+function isFutureTimestamp(tsMs){
+  if(typeof tsMs!=="number"||!isFinite(tsMs)) return false;
+  return (tsMs - Date.now()) > CFG.maxFutureSkewMinutes*60000;
+}
+
+function parseFirmsUtcAgeHours(acqDate,acqTime){
+  const m=String(acqDate||"").trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(!m) return null;
+  const tRaw=String(acqTime||"").trim().padStart(4,"0");
+  const hh=parseInt(tRaw.slice(0,2),10), mm=parseInt(tRaw.slice(2,4),10);
+  if(isNaN(hh)||isNaN(mm)||hh<0||hh>23||mm<0||mm>59) return null;
+  const utcMs=Date.UTC(+m[1],+m[2]-1,+m[3],hh,mm,0);
+  if(isNaN(utcMs)) return null;
+  if(isFutureTimestamp(utcMs)) return null;
+  return Math.max(0,Math.round(((Date.now()-utcMs)/3600000)*10)/10);
+}
+const fmtAge=h=>{
+  if(typeof h!=="number"||!isFinite(h)) return "";
+  h=Math.max(0,h);
+  return h<1?`~${Math.round(h*60)} นาทีที่แล้ว`:`~${h.toFixed(1)} ชม. ที่แล้ว`;
+};
+function fmtAgeFromMs(ms){
+  if(typeof ms!=="number"||!isFinite(ms)||ms<=0) return "";
+  return fmtAge(Math.max(0,(Date.now()-ms)/3600000));
+}
+
+let ALL=[],GRID=new Map(),GRID_N=-1;
+const adminCache=new Map();
+function buildGrid(){
+  GRID=new Map();adminCache.clear();GRID_N=ALL.length;
+  for(let i=0;i<ALL.length;i++){
+    const r=ALL[i];
+    if(!r||!r.s||!(r.s.name_th||r.tn)) continue;
+    const c=sanitizeCoord(r.s.lat,r.s.long!==undefined?r.s.long:r.s.lng);
+    if(!c) continue;
+    r._c=c;
+    const k=Math.floor(c.lat*4)+","+Math.floor(c.lng*4);
+    (GRID.get(k)||GRID.set(k,[]).get(k)).push(r);
+  }
+}
+function nearestAdminFromLocal(lat,lng,maxKm=25){
+  const coord=sanitizeCoord(lat,lng);
+  if(!ALL.length||!coord) return null;
+  if(GRID_N!==ALL.length) buildGrid();
+  const ck=coord.lat.toFixed(3)+","+coord.lng.toFixed(3)+"|"+maxKm;
+  if(adminCache.has(ck)) return adminCache.get(ck);
+  const gi=Math.floor(coord.lat*4),gj=Math.floor(coord.lng*4);
+  const maxRing=Math.max(1,Math.ceil(maxKm/27)+1);
+  let best=null,bestD=Infinity,foundRing=-1;
+  for(let ring=0;ring<=maxRing;ring++){
+    if(foundRing>=0&&ring>foundRing+1) break;
+    for(let di=-ring;di<=ring;di++)for(let dj=-ring;dj<=ring;dj++){
+      if(Math.max(Math.abs(di),Math.abs(dj))!==ring) continue;
+      const list=GRID.get((gi+di)+","+(gj+dj));
+      if(!list) continue;
+      for(const r of list){const d=hav(coord.lat,coord.lng,r._c.lat,r._c.lng);if(d<bestD){bestD=d;best=r;if(foundRing<0)foundRing=ring}}
+    }
+  }
+  const lbl=best?[(best.s&&best.s.name_th)||best.tn,(best.d&&best.d.name_th)||best.dn,(best.p&&best.p.name_th)||best.pn].filter(Boolean).join(" · "):"";
+  const res=(best&&lbl&&bestD<=maxKm)?{label:lbl,distKm:Math.round(bestD*10)/10}:null;
+  if(adminCache.size>3000) adminCache.clear();
+  adminCache.set(ck,res);
+  return res;
+}
+const fmtPlaceLocal=(loc,forceNear)=>(!forceNear&&loc.distKm<=3)?loc.label:`ใกล้ ${loc.label} (~${loc.distKm} กม.)`;
+const placeKey=c=>`${c.lat.toFixed(4)},${c.lng.toFixed(4)}`;
+
+function firePlaceText(f){
+  const coord=sanitizeCoord(f&&f.lat,f&&f.lng);
+  if(!coord) return "พิกัดไม่ถูกต้อง";
+  const key=placeKey(coord);
+  if(S.revCache[key]) return S.revCache[key];
+  const loc=nearestAdminFromLocal(coord.lat,coord.lng,25);
+  if(loc) return fmtPlaceLocal(loc);
+  return ALL.length?"กำลังค้นหาพื้นที่ใกล้เคียง…":"กำลังโหลดรายชื่อพื้นที่…";
+}
+const placePending=new Map();
+let nomChain=Promise.resolve();
+const nomQueue=fn=>{const run=nomChain.then(()=>fn());nomChain=run.catch(()=>{}).then(()=>new Promise(r=>setTimeout(r,1100)));return run};
+function placeNeedsAsync(f){
+  const coord=sanitizeCoord(f&&f.lat,f&&f.lng);
+  if(!coord) return false;
+  const key=placeKey(coord);
+  return !S.revCache[key]&&!placePending.has(key)&&!nearestAdminFromLocal(coord.lat,coord.lng,25);
+}
+function placeAsync(f){
+  const coord=sanitizeCoord(f&&f.lat,f&&f.lng);
+  if(!coord) return Promise.resolve();
+  const key=placeKey(coord);
+  if(S.revCache[key]) return Promise.resolve();
+  if(placePending.has(key)) return placePending.get(key);
+  const p=(async()=>{
+    try{await loadPD()}catch{}
+    const loc=nearestAdminFromLocal(coord.lat,coord.lng,25);
+    if(loc){S.revCache[key]=fmtPlaceLocal(loc);return}
+    if(navigator.onLine){
+      try{
+        const j=await nomQueue(()=>getJSON(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&accept-language=th&lat=${coord.lat}&lon=${coord.lng}`,8000));
+        const ad=j&&j.address||{};
+        const parts=[ad.village||ad.suburb||ad.town||ad.city||ad.county||ad.state_district,ad.state,ad.country].filter(Boolean);
+        const uniq=parts.filter((v,i)=>parts.indexOf(v)===i);
+        if(uniq.length){S.revCache[key]=`บริเวณ ${uniq.join(" · ")}`;return}
+      }catch{}
+    }
+    const far=nearestAdminFromLocal(coord.lat,coord.lng,400);
+    S.revCache[key]=far?fmtPlaceLocal(far,true):"ไม่พบข้อมูลพื้นที่ใกล้เคียง";
+  })().finally(()=>placePending.delete(key));
+  placePending.set(key,p);
+  return p;
+}
+function resolveFirePlaces(items){
+  items.slice().sort((a,b)=>(a.d||0)-(b.d||0)).forEach(x=>{
+    if(placeNeedsAsync(x.f)) placeAsync(x.f).then(()=>renderSheet(true));
+  });
+}
+
+function parseStationTime(str){
+  if(!str||typeof str!=="string") return null;
+  const s=str.trim(),TH=7*3600000;
+  let m=s.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+  if(m){let y=+m[1];if(y>2400)y-=543;const t=Date.UTC(y,+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0))-TH;return isNaN(t)||isFutureTimestamp(t)?null:t}
+  m=s.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+  if(m){let y=+m[3];if(y>2400)y-=543;const t=Date.UTC(y,+m[2]-1,+m[1],+m[4],+m[5],+(m[6]||0))-TH;return isNaN(t)||isFutureTimestamp(t)?null:t}
+  return null;
+}
+function isStationFresh(st){
+  if(!st||!validLatLng(st.lat,st.lng)||typeof st.pm!=="number"||!isFinite(st.pm)||st.pm<0) return false;
+  if(!st.ts||isFutureTimestamp(st.ts)) return false;
+  return ((Date.now()-st.ts)/3600000)<=CFG.maxStationAgeHours;
+}
+
+function activeAreas(){
+  const list=[];
+  if(S.mePos&&validLatLng(S.mePos.lat,S.mePos.lng)){
+    list.push({id:ME_ID,label:"ตำแหน่งฉัน",lat:S.mePos.lat,lng:S.mePos.lng,desc:`พิกัด GPS อุปกรณ์ (±${Math.round(S.mePos.acc||50)} ม.)`,isMe:true});
+  }
+  if(S.areas.length) return list.concat(S.areas);
+  if(!list.length) list.push({...DEFAULT_BKK_AREA});
+  return list;
+}
+function curArea(){
+  const pool=activeAreas();
+  const found=pool.find(x=>String(x.id)===String(S.sel))||pool[0];
+  if(found&&String(S.sel)!==String(found.id)){
+    S.sel=String(found.id);
+    store("ag.sel",S.sel);
+  }
+  return found;
+}
+
+let map=null, tiles=null, stationL=null, fireL=null, windL=null, areaL=null;
+const TILES=[{u:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",a:"© OpenStreetMap contributors"},
+ {u:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",a:"Tiles © Esri"}];
+let tIdx=0,tErr=0,labelsL=null,gibsL=null;
+
+if(typeof L!=="undefined"){
+  try{
+    map=L.map("map",{zoomControl:false,attributionControl:false,preferCanvas:true,doubleClickZoom:false}).setView([DEFAULT_BKK_AREA.lat,DEFAULT_BKK_AREA.lng],7);
+    L.control.attribution({position:"topleft",prefix:false}).addTo(map);
+    stationL=L.layerGroup().addTo(map);
+    fireL=L.layerGroup().addTo(map);
+    windL=L.layerGroup().addTo(map);
+    areaL=L.layerGroup().addTo(map);
+  }catch{map=null}
+}
+
+let scanRaf=null, scanState=null;
+function clearScanVisuals(){
+  if(scanRaf){cancelAnimationFrame(scanRaf);scanRaf=null}
+  if(!scanState){scanState=null;return}
+  if(areaL){
+    scanState.sweep.forEach(s=>{try{areaL.removeLayer(s)}catch{}});
+    if(scanState.line){try{areaL.removeLayer(scanState.line)}catch{}}
+  }
+  scanState=null;
+}
+function triggerScan2Laps(lat,lng,radiusKm){
+  if(!hasMap()||!areaL) return;
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const coord=sanitizeCoord(lat,lng);
+  if(!coord||!(radiusKm>0)) return;
+  clearScanVisuals();
+  const totalLaps=2, lapDurationMs=1650, totalMs=totalLaps*lapDurationMs;
+  scanState={lat:coord.lat,lng:coord.lng,radiusKm,start:performance.now(),duration:totalMs,laps:totalLaps,sweep:[],line:null};
+  const step=(now)=>{
+    if(!scanState||!hasMap()) return;
+    const elapsed=now-scanState.start, progress=Math.min(1,elapsed/scanState.duration);
+    const sweepDeg=progress*360*scanState.laps;
+    const fadeIn=Math.min(1,progress/0.08), fadeOut=progress>0.84?Math.max(0,(1-progress)/0.16):1, fade=fadeIn*fadeOut;
+    const pCenter=map.latLngToLayerPoint([scanState.lat,scanState.lng]);
+    const pEdge=map.latLngToLayerPoint([scanState.lat+(scanState.radiusKm/111.32),scanState.lng]);
+    const rPx=Math.max(12,Math.hypot(pEdge.x-pCenter.x,pEdge.y-pCenter.y));
+    const trailArcDeg=64, steps=24, polyPts=[];
+    for(let i=0;i<=steps;i++){
+      const aRad=((sweepDeg-(trailArcDeg*(1-i/steps)))-90)*Math.PI/180;
+      polyPts.push(map.layerPointToLatLng([pCenter.x+Math.cos(aRad)*rPx,pCenter.y+Math.sin(aRad)*rPx]));
+    }
+    const headRad=(sweepDeg-90)*Math.PI/180;
+    const headLatLng=map.layerPointToLatLng([pCenter.x+Math.cos(headRad)*rPx,pCenter.y+Math.sin(headRad)*rPx]);
+    if(!scanState.sweep.length){
+      for(let i=0;i<steps;i++){
+        scanState.sweep.push(L.polyline([polyPts[i],polyPts[i+1]],{color:"#38bdf8",weight:3.2,opacity:0,interactive:false,lineCap:"round"}).addTo(areaL));
+      }
+      scanState.line=L.polyline([[scanState.lat,scanState.lng],headLatLng],{color:"#7dd3fc",weight:1.8,opacity:0,dashArray:"4 6",interactive:false}).addTo(areaL);
+    }
+    for(let i=0;i<steps;i++){
+      const t=(i+1)/steps, sc=Math.pow(t,1.65);
+      scanState.sweep[i].setLatLngs([polyPts[i],polyPts[i+1]]);
+      scanState.sweep[i].setStyle({color:t>0.82?"#bae6fd":(t>0.45?"#38bdf8":"#0284c7"),weight:1.6+sc*2.4,opacity:sc*0.92*fade});
+    }
+    if(scanState.line){scanState.line.setLatLngs([[scanState.lat,scanState.lng],headLatLng]);scanState.line.setStyle({opacity:0.36*fade})}
+    if(progress<1){scanRaf=requestAnimationFrame(step)}else{clearScanVisuals()}
+  };
+  scanRaf=requestAnimationFrame(step);
+}
+
+function mapPadding(){
+  if(S.fullMap) return {top:20,right:20,bottom:20,left:20};
+  const topEl=$(".top"), sheetEl=$("#sheet"), layEl=$(".layers");
+  const topH=topEl?topEl.getBoundingClientRect().bottom+10:76;
+  const botH=sheetEl&&sheetEl.style.display!=="none"?sheetEl.getBoundingClientRect().height+10:20;
+  const layW=layEl&&layEl.getBoundingClientRect().width>0?layEl.getBoundingClientRect().width+18:136;
+  return {top:topH,right:Math.max(20,layW),bottom:botH,left:20};
+}
+function centerArea(a,animate=true){
+  if(!hasMap()) return;
+  const coord=a&&sanitizeCoord(a.lat,a.lng);
+  if(!coord) return;
+  try{map.invalidateSize({pan:false})}catch{}
+  const pad=mapPadding(), rKm=getFarKm();
+  const dLat=rKm/111.32, dLng=rKm/(111.32*Math.max(0.2,Math.cos(coord.lat*Math.PI/180)));
+  map.fitBounds(L.latLngBounds([coord.lat-dLat,coord.lng-dLng],[coord.lat+dLat,coord.lng+dLng]),{
+    paddingTopLeft:[pad.left,pad.top],paddingBottomRight:[pad.right,pad.bottom],maxZoom:a.isMe?14:11,animate});
+}
+function focusCoord(lat,lng,zoom=12){
+  if(!hasMap()) return;
+  const coord=sanitizeCoord(lat,lng);
+  if(coord) map.setView([coord.lat,coord.lng],zoom,{animate:true});
+}
+
+function setFullMap(val){
+  const next=typeof val==="boolean"?val:!S.fullMap;
+  if(pages.some(id=>$("#"+id).classList.contains("open"))||picking) return;
+  S.fullMap=next;$("#app").classList.toggle("fullmap",S.fullMap);
+  setTimeout(()=>{if(hasMap())map.invalidateSize();const a=curArea();if(a)centerArea(a,true)},260);
+  toast(S.fullMap?"แผนที่เต็มจอ · ดับเบิลคลิกบนแผนที่อีกครั้งเพื่อย่อกลับ":"ย่อแผนที่ตามขนาดหน้าจอแล้ว");
+}
+$("#bExitFull").onclick=()=>setFullMap(false);
+$("#bFull").onclick=()=>setFullMap(true);
+
+let lastMapToggle=0,tapPrev=0,tapStart=null;
+function mapDblToggle(target){
+  if(target&&target.closest&&target.closest("button,input,select,a,.leaflet-popup,.leaflet-control,.leaflet-marker-icon,.sheet,.top,.layers,.page,.pickbar,.exit-full")) return;
+  if(picking) return;
+  const now=Date.now();
+  if(now-lastMapToggle<500) return;
+  lastMapToggle=now;
+  setFullMap();
+}
+$("#map").addEventListener("dblclick",ev=>{ev.preventDefault();mapDblToggle(ev.target)});
+$("#map").addEventListener("touchstart",ev=>{
+  const t=ev.touches[0];tapStart=(ev.touches.length===1&&t)?{x:t.clientX,y:t.clientY}:null;
+},{passive:true});
+$("#map").addEventListener("touchend",ev=>{
+  if(!tapStart||ev.changedTouches.length!==1) return;
+  const t=ev.changedTouches[0];
+  if(Math.hypot(t.clientX-tapStart.x,t.clientY-tapStart.y)>10){tapPrev=0;return}
+  const now=Date.now();
+  if(tapPrev&&now-tapPrev<300){tapPrev=0;mapDblToggle(ev.target)}else tapPrev=now;
+},{passive:true});
+
+function setTiles(){
+  if(!hasMap()) return;
+  [tiles,labelsL,gibsL].forEach(l=>l&&map.removeLayer(l));labelsL=gibsL=null;
+  if(!navigator.onLine) return;
+  const sat=S.set.base==="sat";$("#map").classList.toggle("sat",sat);
+  const t=sat?{u:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",a:"Imagery © Esri, Maxar, Earthstar Geographics"}
+    :(CFG.tileUrl?{u:CFG.tileUrl,a:CFG.tileAttr}:TILES[tIdx]);
+  tiles=L.tileLayer(t.u,{maxZoom:19,attribution:t.a,zIndex:1}).addTo(map);
+  if(!sat) tiles.on("tileerror",()=>{if(++tErr===6&&!CFG.tileUrl&&tIdx<TILES.length-1){tIdx++;tErr=0;toast("เปลี่ยนไปใช้แหล่งแผนที่สำรอง");setTiles()}});
+  if(S.set.gibs){
+    const d=new Date(Date.now()-864e5).toISOString().slice(0,10);
+    gibsL=L.tileLayer(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/${d}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`,
+      {maxNativeZoom:9,maxZoom:19,opacity:.88,zIndex:2,className:"nasa-gibs-layer",attribution:"NASA GIBS"}).addTo(map);
+  }
+  if(sat) labelsL=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,zIndex:3}).addTo(map);
+}
+
+function fireStrength(f){return f.conf==="h"?"สูง":"ปกติ"}
+function renderMap(){
+  if(!hasMap()||!stationL||!fireL||!windL||!areaL) return;
+  clearScanVisuals();
+  stationL.clearLayers();fireL.clearLayers();windL.clearLayers();areaL.clearLayers();
+  const pool=activeAreas();
+  const selArea=pool.find(x=>String(x.id)===String(S.sel))||pool[0];
+  const selCoord=selArea?sanitizeCoord(selArea.lat,selArea.lng):null;
+  const farKm=getFarKm(), nearKm=getNearKm();
+
+  if(S.lay.pm) S.stations.filter(isStationFresh).forEach(s=>{
+    const l=lvl(s.pm);
+    L.marker([s.lat,s.lng],{icon:L.divIcon({className:"",iconSize:[34,34],html:`<div class="pin ${l.dk?"dk":""}" style="background:${l.c}">${Math.round(s.pm)}</div>`})})
+     .bindPopup(`<b>${esc(s.name)}</b><br>PM2.5 ${s.pm} µg/m³ · ${l.n}<br><small>วัดเมื่อ ${esc(s.time||"ไม่ระบุเวลา")}${s.ts?` (${esc(fmtAgeFromMs(s.ts))})`:""}</small>`).addTo(stationL);
+  });
+  if(S.lay.fire) S.fires.forEach(f=>{
+    const coord=sanitizeCoord(f&&f.lat,f&&f.lng);
+    if(!coord) return;
+    const fresh=f.ageHours<=CFG.freshFireHours;
+    const popupHtml=()=>{
+      const distFromSel=selCoord?hav(selCoord.lat,selCoord.lng,coord.lat,coord.lng):null;
+      const distInfo=distFromSel!==null
+        ?`ห่าง ${distFromSel.toFixed(1)} กม. (${distFromSel<=nearKm?`ใกล้ ≤${nearKm} กม.`:(distFromSel<=farKm?`ไกล ${nearKm}-${farKm} กม.`:`นอกระยะ ${farKm} กม.`)}จาก${selArea.label})`:"";
+      const navUrl=googleMapsNavUrl(coord.lat,coord.lng,S.mePos);
+      return `<b>🔥 จุดความร้อน (VIIRS · ≤24 ชม. · ${esc(SCOPE_LABEL)})</b><br>`+
+        (distInfo?`<small><b>${esc(distInfo)}</b></small><br>`:"")+
+        `<small>Lat: <b>${coord.lat.toFixed(5)}°</b> · Lng: <b>${coord.lng.toFixed(5)}°</b></small><br>`+
+        `<small>พิกเซลดาวเทียมราว 375 ม. (ไม่ใช่ขนาดพื้นที่เผาไหม้)</small><br>`+
+        `<small>พื้นที่/ใกล้เคียง: <b>${esc(firePlaceText(f))}</b></small><br>`+
+        `<small>${esc(f.date)} ${esc(f.t)} UTC · ${esc(fmtAge(f.ageHours))} · <b>${esc(satShortLabel(f.sat))}</b> · ความเชื่อมั่น ${fireStrength(f)}${f.frp>0?` · FRP ${f.frp} MW`:""}</small>`+
+        (navUrl?`<div style="margin-top:6px"><a href="${esc(navUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:5px 10px;border-radius:8px;background:#0284c7;color:#fff;font-weight:700;font-size:12px;text-decoration:none">🧭 นำทาง Google Maps</a></div>`:"");
+    };
+    const mk=L.circleMarker([coord.lat,coord.lng],{radius:fresh?5.5:4.5,color:"#fff",weight:1,fillColor:"#e11d1d",fillOpacity:.95})
+      .bindPopup(popupHtml).addTo(fireL);
+    mk.on("popupopen",()=>{
+      if(!placeNeedsAsync(f)) return;
+      placeAsync(f).then(()=>{try{if(mk.isPopupOpen()) mk.getPopup().setContent(popupHtml())}catch{}});
+    });
+  });
+  if(S.lay.wind) pool.forEach(a=>{
+    const w=S.wind[String(a.id)];
+    if(!w||!isFinite(w.speed)||!isFinite(w.deg)) return;
+    L.marker([a.lat,a.lng],{
+      icon:L.divIcon({className:"",iconSize:[0,0],html:`<div class="wpin"><span class="warr" style="transform:rotate(${arrowCssDeg(w.deg)}deg)">➤</span><span>${w.speed} กม./ชม.</span></div>`}),
+      interactive:true
+    }).bindPopup(`<b>ลม · ${esc(a.label)}</b><br>ความเร็ว <b>${w.speed} กม./ชม.</b> (${Math.round(w.deg)}°)<br><small>${esc(windToLabel(w.deg))}</small>`).addTo(windL);
+  });
+  pool.forEach(a=>{
+    const coord=sanitizeCoord(a.lat,a.lng);
+    if(!coord) return;
+    if(a.isMe&&S.mePos){
+      L.circle([coord.lat,coord.lng],{radius:S.mePos.acc||50,color:"#2563eb",weight:1,fillColor:"#3b82f6",fillOpacity:.15}).addTo(areaL);
+      L.circleMarker([coord.lat,coord.lng],{radius:8,color:"#fff",weight:3,fillColor:"#2563eb",fillOpacity:1}).bindTooltip(`ตำแหน่งฉัน (±${Math.round(S.mePos.acc||50)} ม.)`).addTo(areaL);
+    }else if(!a.isMe){
+      L.marker([coord.lat,coord.lng],{icon:L.divIcon({className:"",html:'<div class="home">📍</div>',iconSize:[26,26],iconAnchor:[13,24]})}).bindTooltip(esc(a.label)).addTo(areaL);
+    }
+    if(selArea&&String(a.id)===String(selArea.id)){
+      const rKm=getFarKm(), nearRKm=getNearKm();
+      const haloColor=S.set.theme==="dark"?"#fef08a":"#fde047", coreColor=S.set.theme==="dark"?"#facc15":"#eab308";
+      L.circle([coord.lat,coord.lng],{radius:nearRKm*1000,color:"#fb923c",weight:1.8,opacity:.75,dashArray:"4 5",fill:false,interactive:false}).addTo(areaL);
+      L.circle([coord.lat,coord.lng],{radius:rKm*1000,color:haloColor,weight:11,opacity:.3,fill:false,interactive:false}).addTo(areaL);
+      L.circle([coord.lat,coord.lng],{radius:rKm*1000,color:coreColor,weight:2.5,opacity:.9,dashArray:"8 6",fillColor:"#fef08a",fillOpacity:.08,interactive:false}).addTo(areaL);
+    }
+  });
+}
+
+const AIR="https://air4thai.pcd.go.th/services/getNewAQI_JSON.php";
+const withCacheBust=u=>u+(u.includes("?")?"&":"?")+"_t="+Date.now()+"_"+Math.random().toString(36).slice(2,6);
+function applyProxyPrefix(targetUrl){
+  const pfx=getProxyPrefix();
+  if(!pfx) return null;
+  if(pfx.endsWith("=")) return pfx+encodeURIComponent(targetUrl);
+  return pfx.replace(/\/+$/,"")+"/?url="+encodeURIComponent(targetUrl);
+}
+function buildAirUrls(){
+  const urls=[];
+  const proxied=applyProxyPrefix(AIR);
+  if(proxied) urls.push(proxied);
+  urls.push(AIR);
+  if(location.protocol==="http:") urls.push(AIR.replace("https:","http:"));
+  urls.push("https://corsproxy.io/?url="+encodeURIComponent(AIR),"https://api.allorigins.win/raw?url="+encodeURIComponent(AIR));
+  return [...new Set(urls)];
+}
+async function getJSON(u,ms=10000){
+  const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);
+  try{
+    const r=await fetch(withCacheBust(u),{signal:c.signal,cache:"no-store"});
+    if(!r.ok)throw new Error(r.status);
+    return await r.json();
+  }finally{clearTimeout(t)}
+}
+
+async function fetchAir(runId){
+  let j=null;
+  for(const u of buildAirUrls()){
+    try{const x=await getJSON(u);if(x&&typeof x==="object"&&!Array.isArray(x)&&Array.isArray(x.stations)){j=x;break}}catch{}
+  }
+  if(!j) throw new Error("air4thai");
+  const parsed=j.stations.map(s=>{
+    if(!s||typeof s!=="object") return null;
+    const p=s.AQILast&&s.AQILast.PM25;
+    const coord=sanitizeCoord(s.lat,s.long);
+    const pm=p!==undefined&&p!==null&&p.value!==""?+p.value:NaN;
+    if(!coord||!isFinite(pm)||pm<0||pm>2000) return null;
+    const timeStr=s.AQILast?`${s.AQILast.date||""} ${s.AQILast.time||""}`.trim():"";
+    const ts=parseStationTime(timeStr);
+    const aqiRaw=s.AQILast&&s.AQILast.AQI?+s.AQILast.AQI.aqi:NaN;
+    return {name:String(s.nameTH||s.areaTH||s.stationID||"สถานีตรวจวัด"),lat:coord.lat,lng:coord.lng,pm:Math.round(pm*10)/10,aqi:isFinite(aqiRaw)?aqiRaw:NaN,time:timeStr,ts};
+  }).filter(Boolean);
+  if(!parsed.length) throw new Error("empty");
+  if(runId!==activeRunId) return "stale_run";
+  const now=new Date(), nowMs=now.getTime();
+  S.stations=parsed;
+  S.st.lastOkBySource.air=now;
+  activeAreas().forEach(a=>{
+    const aCoord=sanitizeCoord(a.lat,a.lng);
+    if(!aCoord) return;
+    const hasNearbyFresh=parsed.filter(isStationFresh).some(st=>hav(aCoord.lat,aCoord.lng,st.lat,st.lng)<=CFG.maxStationKm);
+    if(hasNearbyFresh) markAreaSourceOk(a.id,"air",nowMs);
+  });
+  store("ag.stations_last",{ts:nowMs,list:S.stations});
+  return "ok";
+}
+
+function lastIdxAtOrBefore(times,nowIso){
+  if(!nowIso||!Array.isArray(times)) return -1;
+  let idx=-1;
+  for(let i=0;i<times.length;i++){if(String(times[i])<=nowIso) idx=i;else break}
+  return idx;
+}
+function prioritizedAreasForRequest(){
+  const all=activeAreas();
+  const focusId=String((curArea()&&curArea().id)||"");
+  const focus=all.filter(a=>String(a.id)===focusId);
+  const me=all.filter(a=>String(a.id)===ME_ID&&String(a.id)!==focusId);
+  const rest=all.filter(a=>String(a.id)!==focusId&&String(a.id)!==ME_ID);
+  return [...focus,...me,...rest];
+}
+
+async function fetchModelAndWind(runId){
+  const ordered=prioritizedAreasForRequest();
+  const hourlyIds=new Set(ordered.slice(0,CFG.maxHourlyAreas).map(a=>String(a.id)));
+  const m={},w={},ser={},areaStatusPatch={};
+  let anyValid=false;
+
+  const batchSize=3;
+  for(let i=0;i<ordered.length;i+=batchSize){
+    if(runId!==activeRunId) return "stale_run";
+    const chunk=ordered.slice(i,i+batchSize);
+    await Promise.allSettled(chunk.map(async a=>{
+      if(runId!==activeRunId) return;
+      const aid=String(a.id);
+      const coord=sanitizeCoord(a.lat,a.lng);
+      if(!coord){
+        areaStatusPatch[aid]={ok:false,ts:Date.now()};
+        return;
+      }
+      const needHourly=hourlyIds.has(aid);
+      const aqUrl=needHourly
+        ?`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${coord.lat}&longitude=${coord.lng}&current=pm2_5&hourly=pm2_5&past_days=2&forecast_days=2&timezone=Asia%2FBangkok`
+        :`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${coord.lat}&longitude=${coord.lng}&current=pm2_5&timezone=Asia%2FBangkok`;
+      const [aqRes,wxRes]=await Promise.allSettled([
+        getJSON(aqUrl),
+        getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${coord.lat}&longitude=${coord.lng}&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=kmh&timezone=Asia%2FBangkok`)
+      ]);
+      let areaOk=false;
+      if(aqRes.status==="fulfilled"&&aqRes.value&&typeof aqRes.value==="object"){
+        const curPm=aqRes.value.current&&aqRes.value.current.pm2_5;
+        const times=aqRes.value.hourly&&Array.isArray(aqRes.value.hourly.time)?aqRes.value.hourly.time:[];
+        const vals=aqRes.value.hourly&&Array.isArray(aqRes.value.hourly.pm2_5)?aqRes.value.hourly.pm2_5:[];
+        const nowIso=String((aqRes.value.current&&aqRes.value.current.time)||"");
+        const curIdx=lastIdxAtOrBefore(times,nowIso);
+        let avg24=null;
+        if(curIdx>=0){
+          const past=vals.slice(Math.max(0,curIdx-23),curIdx+1).filter(v=>typeof v==="number"&&isFinite(v)&&v>=0);
+          if(past.length>=12) avg24=past.reduce((s,v)=>s+v,0)/past.length;
+        }
+        if(typeof curPm==="number"&&isFinite(curPm)&&curPm>=0){
+          anyValid=true; areaOk=true;
+          m[aid]={pm:Math.round(curPm*10)/10,avg24:avg24!==null?Math.round(avg24*10)/10:null,time:nowIso};
+        }
+        if(needHourly&&times.length===vals.length&&times.length>=2){
+          const startIdx=curIdx>=0?Math.max(0,curIdx-24):0;
+          const endIdx=curIdx>=0?Math.min(times.length,curIdx+25):times.length;
+          const pts=[];
+          for(let j=startIdx;j<endIdx;j++){
+            const v=vals[j];
+            if(typeof v==="number"&&isFinite(v)&&v>=0) pts.push({t:String(times[j]||""),v:Math.round(v*10)/10,isForecast:curIdx>=0&&j>curIdx});
+          }
+          if(pts.length>=2){anyValid=true;areaOk=true;ser[aid]=pts}
+        }
+      }
+      if(wxRes.status==="fulfilled"&&wxRes.value&&typeof wxRes.value==="object"){
+        const cur=wxRes.value.current;
+        if(cur&&typeof cur.wind_speed_10m==="number"&&isFinite(cur.wind_speed_10m)&&cur.wind_speed_10m>=0&&typeof cur.wind_direction_10m==="number"&&isFinite(cur.wind_direction_10m)){
+          anyValid=true; areaOk=true;
+          w[aid]={speed:Math.round(cur.wind_speed_10m*10)/10,deg:((cur.wind_direction_10m%360)+360)%360,time:String(cur.time||"")};
+        }
+      }
+      areaStatusPatch[aid]={ok:areaOk,ts:Date.now()};
+    }));
+  }
+  if(runId!==activeRunId) return "stale_run";
+  const nowMs=Date.now();
+  S.areaMwStatus=Object.assign({},S.areaMwStatus,areaStatusPatch);
+  if(Object.keys(m).length) S.model=Object.assign({},S.model,m);
+  if(Object.keys(w).length) S.wind=Object.assign({},S.wind,w);
+  if(Object.keys(ser).length){S.series=Object.assign({},S.series,ser);store("ag.series_last",{ts:nowMs,data:S.series})}
+  Object.entries(areaStatusPatch).forEach(([aid,st])=>{
+    if(st&&st.ok) markAreaSourceOk(aid,"mw",nowMs);
+  });
+  if(anyValid) S.st.lastOkBySource.mw=new Date(nowMs);
+  if(ordered.length&&!anyValid) throw new Error("model_wind_failed");
+  return "ok";
+}
+
+const FIRMS_PRIMARY=["VIIRS_NOAA20_NRT","VIIRS_NOAA21_NRT"];
+const FIRMS_FALLBACK=["VIIRS_SNPP_NRT"];
+function parseFirmsCsvStrict(txt,source){
+  const clean=String(txt||"").replace(/^\uFEFF/,"").trim();
+  if(!clean) return {ok:true,empty:true,items:[]};
+  if(/^\s*</.test(clean)||/^<!doctype html/i.test(clean)) throw new Error("html_instead_of_csv");
+  const lines=clean.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  if(!lines.length) return {ok:true,empty:true,items:[]};
+  const h=lines[0].split(",").map(x=>x.trim().toLowerCase());
+  const ix=n=>h.indexOf(n);
+  const iLat=ix("latitude"), iLng=ix("longitude"), iDate=ix("acq_date"), iTime=ix("acq_time");
+  if(iLat<0||iLng<0||iDate<0||iTime<0) throw new Error("missing_required_firms_columns");
+  if(lines.length===1) return {ok:true,empty:true,items:[]};
+  const iConf=ix("confidence"), iFrp=ix("frp");
+  const items=[];
+  for(let i=1;i<lines.length;i++){
+    const c=lines[i].split(",");
+    if(c.length<Math.max(iLat,iLng,iDate,iTime)+1) throw new Error("malformed_firms_row");
+    const coord=sanitizeCoord(c[iLat],c[iLng]);
+    if(!coord) continue;
+    const conf=iConf>=0?(c[iConf]||"").trim().toLowerCase():"";
+    if(conf==="l"||conf==="low") continue;
+    const acqDate=(c[iDate]||"").trim(), acqTime=(c[iTime]||"").trim();
+    const ageHours=parseFirmsUtcAgeHours(acqDate,acqTime);
+    if(ageHours===null||ageHours>CFG.maxFireAgeHours) continue;
+    const frpRaw=iFrp>=0?+c[iFrp]:0;
+    items.push({lat:coord.lat,lng:coord.lng,conf,date:acqDate,t:acqTime,ageHours,sat:source,prio:SAT_PRIORITY[source]||9,
+      frp:isFinite(frpRaw)&&frpRaw>0&&frpRaw<100000?Math.round(frpRaw*10)/10:0});
+  }
+  return {ok:true,empty:items.length===0,items};
+}
+async function fetchSingleFirms(source,key,ms=14000){
+  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),ms);
+  try{
+    const directUrl=`https://firms.modaps.eosdis.nasa.gov/api/area/csv/${encodeURIComponent(key)}/${source}/${TH_BORDER_BBOX}/2`;
+    const reqUrl=withCacheBust(applyProxyPrefix(directUrl)||directUrl);
+    const r=await fetch(reqUrl,{signal:ctrl.signal,cache:"no-store"});
+    if(!r.ok) throw new Error(source+":"+r.status);
+    const txt=await r.text();
+    return parseFirmsCsvStrict(txt,source);
+  }finally{clearTimeout(timer)}
+}
+
+async function fetchFire(runId){
+  const hasProxy=Boolean(getProxyPrefix());
+  if(!S.set.key&&!hasProxy) return "nokey";
+  const keyParam=S.set.key||"PROXY_MANAGED";
+  const primaryRes=await Promise.allSettled(FIRMS_PRIMARY.map(src=>fetchSingleFirms(src,keyParam,14000)));
+  const validPrimary=primaryRes.filter(r=>r.status==="fulfilled"&&r.value&&r.value.ok).map(r=>r.value);
+  let validFallback=[];
+  try{
+    const fbRes=await Promise.allSettled(FIRMS_FALLBACK.map(src=>fetchSingleFirms(src,keyParam,10000)));
+    validFallback=fbRes.filter(r=>r.status==="fulfilled"&&r.value&&r.value.ok).map(r=>r.value);
+  }catch{}
+  const validAll=[...validPrimary,...validFallback];
+  if(!validAll.length){
+    const firstErr=primaryRes.find(r=>r.status==="rejected");
+    throw firstErr?firstErr.reason:new Error("firms_invalid_or_failed");
+  }
+  const merged=validAll.flatMap(v=>v.items).sort((a,b)=>(a.prio-b.prio)||(a.ageHours-b.ageHours));
+  const seen=new Map(),deduped=[];
+  for(const f of merged){
+    const gi=Math.floor(f.lat*150),gj=Math.floor(f.lng*150);
+    let dup=false;
+    for(let di=-1;di<=1&&!dup;di++)for(let dj=-1;dj<=1&&!dup;dj++){
+      const list=seen.get((gi+di)+","+(gj+dj));
+      if(list&&list.some(ex=>hav(ex.lat,ex.lng,f.lat,f.lng)<0.6&&Math.abs(ex.ageHours-f.ageHours)<=1.5)) dup=true;
+    }
+    if(!dup){deduped.push(f);const k=gi+","+gj;(seen.get(k)||seen.set(k,[]).get(k)).push(f)}
+  }
+  if(runId!==activeRunId) return "stale_run";
+  const now=new Date(), nowMs=now.getTime();
+  const mode=deduped.some(f=>f.ageHours<=CFG.freshFireHours)?"realtime":"history24h";
+  S.fires=deduped;
+  S.hasFireSnapshot=true;
+  S.fireMode=mode;
+  S.fireFromCache=false;
+  S.st.lastOkBySource.fire=now;
+  activeAreas().forEach(a=>markAreaSourceOk(a.id,"fire",nowMs));
+  store("ag.fires_last",{ts:nowMs,mode,emptySnapshot:deduped.length===0,list:deduped.slice(0,2500)});
+  return "ok";
+}
+
+function recomputeOverallLastOkTime(){
+  const times=[S.st.lastOkBySource.air,S.st.lastOkBySource.fire,S.st.lastOkBySource.mw]
+    .filter(d=>d instanceof Date&&!isNaN(d.getTime()));
+  S.st.lastOkTime=times.length?new Date(Math.max(...times.map(d=>d.getTime()))):null;
+}
+
+let activeRunId=0, inFlightRefresh=null;
+async function refresh(manual){
+  if(inFlightRefresh&&!manual) return inFlightRefresh;
+  const runId=++activeRunId;
+  const task=(async()=>{
+    try{
+      S.st.scanning=true;
+      S.st.offline=!navigator.onLine;
+      S.st.air=S.st.offline?"ออฟไลน์อยู่ · แผนที่และข้อมูลสดอาจใช้ไม่ได้ กำลังตรวจแคชสถานี…":"กำลังสแกนค่าฝุ่น…";
+      S.st.fire=S.st.offline?"ออฟไลน์อยู่ · ไม่สามารถสแกนจุดความร้อนสดได้":((S.set.key||getProxyPrefix())?`กำลังสแกนจุดความร้อน NOAA-20 / NOAA-21 เฉพาะ${SCOPE_LABEL}…`:"ยังไม่ได้ใส่ NASA FIRMS MAP_KEY หรือ Worker URL ในตั้งค่า");
+      if(runId===activeRunId) renderSheet(true);
+
+      const [a,f,mw]=await Promise.allSettled([fetchAir(runId),fetchFire(runId),fetchModelAndWind(runId)]);
+      if(runId!==activeRunId) return;
+
+      if(a.status==="rejected"){
+        const cachedSt=load("ag.stations_last",null);
+        if(cachedSt&&Array.isArray(cachedSt.list)&&cachedSt.list.length&&(Date.now()-(cachedSt.ts||0))<=6*3600000){
+          S.stations=cachedSt.list.filter(s=>s&&validLatLng(s.lat,s.lng)&&!isFutureTimestamp(s.ts));
+        }
+      }
+      if(!Object.keys(S.series).length){
+        const cachedSer=load("ag.series_last",null);
+        if(cachedSer&&cachedSer.data&&typeof cachedSer.data==="object"&&(Date.now()-(cachedSer.ts||0))<=24*3600000){
+          S.series=cachedSer.data;
+        }
+      }
+      S.st.airErr=a.status==="rejected";
+      S.st.mwErr=mw.status==="rejected";
+      if(S.st.airErr){
+        S.st.air=S.st.offline
+          ?(S.stations.length?"ออฟไลน์อยู่ · แสดงสถานีล่าสุดจากแคช (แผนที่และข้อมูลสดอาจใช้ไม่ได้ · ไม่ใช้ยิงแจ้งเตือน)":"ออฟไลน์อยู่ · ไม่มีข้อมูลฝุ่นในแคช (แผนที่และข้อมูลสดอาจใช้ไม่ได้)")
+          :(Object.keys(S.model).length?"โหลดสถานีตรวจวัดไม่สำเร็จ จึงแสดงค่าประมาณจากแบบจำลองแทน (ไม่ใช้ยิงแจ้งเตือน)":"โหลดค่าฝุ่นไม่สำเร็จ ตรวจสอบเครือข่ายหรือตั้ง CORS Proxy ในตั้งค่า");
+      }else S.st.air="";
+
+      S.st.fireErr=f.status==="rejected";
+      if(S.st.fireErr){
+        S.fireFromCache=true;
+        S.st.fire=S.st.offline
+          ?(S.fires.length?"ออฟไลน์อยู่ · แสดงจุดความร้อนเดิมที่เคยโหลดไว้ (แผนที่และข้อมูลสดอาจใช้ไม่ได้ · ไม่ใช้ยิงแจ้งเตือน)":"ออฟไลน์อยู่ · ไม่สามารถสแกนจุดความร้อนสดได้")
+          :(S.fires.length?"ดึงจุดความร้อนรอบล่าสุดไม่สำเร็จ · แสดงข้อมูลจุดความร้อนเดิมที่เก็บไว้ (ไม่ใช้ยิงแจ้งเตือน)":"โหลดจุดความร้อนไม่สำเร็จหรือรูปแบบข้อมูลผิดพลาด ตรวจสอบ MAP_KEY / Proxy หรือการเชื่อมต่อ");
+      }else if(f.value==="nokey"){
+        S.st.fire="ยังไม่ได้ใส่ NASA FIRMS MAP_KEY หรือ Worker URL ในตั้งค่า";
+      }else S.st.fire="";
+
+      recomputeOverallLastOkTime();
+      S.st.time=new Date();
+      setTiles();
+      renderMap();renderSheet(true);
+      const curA=curArea();
+      if(curA) requestAnimationFrame(()=>triggerScan2Laps(curA.lat,curA.lng,getFarKm()));
+      if(!S.st.offline) checkAlerts();
+      if(manual) toast(S.st.offline?"โหมดออฟไลน์ · ข้อมูลสดและแผนที่อาจใช้ไม่ได้ แสดงแคชที่มี":"สแกนข้อมูลล่าสุดแล้ว");
+    }finally{
+      if(runId===activeRunId){
+        S.st.scanning=false;
+        renderSheet(true);
+      }
+      if(inFlightRefresh===task)inFlightRefresh=null;
+    }
+  })();
+  inFlightRefresh=task;
+  return task;
+}
+
+function drawTrendChart(areaId){
+  const canvas=$("#trendCanvas");
+  if(!canvas) return;
+  const pts=S.series[String(areaId)];
+  const ctx=canvas.getContext("2d");
+  if(!ctx) return;
+  const dpr=Math.min(2,window.devicePixelRatio||1), rect=canvas.getBoundingClientRect();
+  const w=Math.max(240,Math.floor(rect.width||300)), h=Math.max(90,Math.floor(rect.height||110));
+  canvas.width=w*dpr; canvas.height=h*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+  const muted=getComputedStyle(document.documentElement).getPropertyValue("--muted")||"#64748b";
+  if(!Array.isArray(pts)||pts.length<2){
+    ctx.fillStyle=muted;ctx.font="12px sans-serif";ctx.textAlign="center";
+    ctx.fillText("ยังไม่มีข้อมูลกราฟย้อนหลัง/พยากรณ์สำหรับพื้นที่นี้",w/2,h/2+4);
+    return;
+  }
+  const padL=30,padR=10,padT=12,padB=18;
+  const plotW=Math.max(40,w-padL-padR), plotH=Math.max(30,h-padT-padB);
+  const maxVal=Math.max(50,...pts.map(p=>p.v))*1.12;
+  const xAt=i=>padL+(i/(pts.length-1))*plotW;
+  const yAt=v=>padT+plotH-(Math.min(maxVal,Math.max(0,v))/maxVal)*plotH;
+  const yThr=yAt(37.5);
+  ctx.save();ctx.strokeStyle="rgba(234,179,8,.55)";ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(padL,yThr);ctx.lineTo(padL+plotW,yThr);ctx.stroke();ctx.restore();
+  ctx.fillStyle=muted;ctx.font="10px sans-serif";ctx.textAlign="right";
+  ctx.fillText(Math.round(maxVal)+"",padL-5,padT+8);ctx.fillText("0",padL-5,padT+plotH);
+  const firstFc=pts.findIndex(p=>p.isForecast);
+  const histEnd=firstFc<0?pts.length-1:Math.max(0,firstFc-1);
+  ctx.strokeStyle="#4f46e5";ctx.lineWidth=2.2;ctx.beginPath();
+  for(let i=0;i<=histEnd;i++){const x=xAt(i),y=yAt(pts[i].v);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}
+  ctx.stroke();
+  if(firstFc>=0){
+    ctx.save();ctx.strokeStyle="#06b6d4";ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.beginPath();
+    for(let i=histEnd;i<pts.length;i++){const x=xAt(i),y=yAt(pts[i].v);if(i===histEnd)ctx.moveTo(x,y);else ctx.lineTo(x,y)}
+    ctx.stroke();ctx.restore();
+    const nx=xAt(histEnd);
+    ctx.fillStyle=muted;ctx.textAlign="center";ctx.fillText("ปัจจุบัน",nx,h-4);
+  }
+  ctx.fillStyle=muted;ctx.textAlign="left";ctx.fillText("-24 ชม.",padL,h-4);
+  ctx.textAlign="right";ctx.fillText("+24 ชม.",padL+plotW,h-4);
+}
+
+function isAreaMwFailed(areaId){
+  const st=S.areaMwStatus[String(areaId||"")];
+  if(st) return st.ok===false;
+  return Boolean(S.st.mwErr);
+}
+
+function evalArea(a){
+  const aCoord=a&&sanitizeCoord(a.lat,a.lng);
+  let st=null,sd=Infinity;
+  if(aCoord){
+    S.stations.filter(isStationFresh).forEach(s=>{
+      const d=hav(aCoord.lat,aCoord.lng,s.lat,s.lng);
+      if(d<sd){sd=d;st=s}
+    });
+  }
+  if(sd>CFG.maxStationKm) st=null;
+  const nearKm=getNearKm(), farKm=getFarKm(), w=S.wind[String(a.id)]||null;
+  const fires=aCoord?S.fires.map(f=>{
+      const d=hav(aCoord.lat,aCoord.lng,f.lat,f.lng);
+      if(d>farKm) return null;
+      const alignedRough=w&&isFinite(w.deg)?isWindAlignedRough(f.lat,f.lng,aCoord.lat,aCoord.lng,w.deg):false;
+      return {f,d,band:d<=nearKm?"near":"far",alignedRough};
+    }).filter(Boolean).sort((x,y)=>x.d-y.d):[];
+  const nearFires=fires.filter(x=>x.d<=nearKm), farFires=fires.filter(x=>x.d>nearKm);
+  const alignedNearFires=nearFires.filter(x=>x.alignedRough);
+  const areaFreshMode=fires.some(x=>x.f.ageHours<=CFG.freshFireHours)?"realtime":"history24h";
+  const m=S.model[String(a.id)]||null;
+  let pm=null,comparePm=null,src=null;
+  if(st){pm=st.pm;comparePm=st.pm;src="station"}
+  else if(m){pm=m.pm;comparePm=m.avg24!==null?m.avg24:m.pm;src="model"}
+  const mwAreaErr=a?isAreaMwFailed(a.id):false;
+  return {st,sd,fires,nearFires,farFires,alignedNearFires,areaFreshMode,pm,comparePm,src,m,w,mwAreaErr,nearKm,farKm};
+}
+
+const today=()=>new Date().toLocaleDateString("sv-SE");
+function pruneOldSentKeys(d){
+  if(!S.sent||typeof S.sent!=="object") S.sent={};
+  let changed=false;
+  Object.keys(S.sent).forEach(k=>{if(!k.endsWith("|"+d)){delete S.sent[k];changed=true}});
+  return changed;
+}
+function notify(key,icon,title,desc){
+  const d=today(); let changed=pruneOldSentKeys(d);
+  if(S.sent[key]){if(changed)store("ag.sent",S.sent);return}
+  S.sent[key]=1;
+  S.noti.unshift({id:Date.now()+Math.random(),icon:icon||"🔔",title,desc,time:new Date().toLocaleString("th-TH"),read:false});
+  S.noti=S.noti.slice(0,60);
+  store("ag.sent",S.sent);store("ag.noti",S.noti);updateBadge();toast(`${icon||"🔔"} ${title}`);
+  if(S.set.browser&&"Notification" in window&&Notification.permission==="granted"){try{new Notification(title,{body:desc})}catch{}}
+}
+function checkAlerts(){
+  if(pruneOldSentKeys(today())) store("ag.sent",S.sent);
+  const d=today();
+  activeAreas().forEach(a=>{
+    const e=evalArea(a);
+    const airOkDate=getAreaSourceLastOk(a.id,"air");
+    const airFreshForAlert=!S.st.airErr&&airOkDate&&((Date.now()-airOkDate.getTime())/60000)<CFG.staleWarnMinutes;
+    if(e.src==="station"&&airFreshForAlert&&e.pm!=null&&e.pm>=S.set.pm){
+      notify(`${a.id}|pm|L${lvlIdx(e.pm)}|${d}`,"🌫️",`PM2.5 สูง: ${a.label}`,`${e.pm} µg/m³ (${lvl(e.pm).n}) จากสถานี ${e.st.name} ห่าง ${e.sd.toFixed(1)} กม.`);
+    }
+    const fireOkDate=getAreaSourceLastOk(a.id,"fire");
+    const fireFreshForAlert=!S.st.fireErr&&!S.fireFromCache&&(S.set.key||getProxyPrefix())&&fireOkDate&&((Date.now()-fireOkDate.getTime())/60000)<CFG.staleWarnMinutes;
+    if(fireFreshForAlert){
+      const recent=e.nearFires.filter(x=>x.f.ageHours<=CFG.alertFireAgeHours);
+      if(recent.length){
+        const nearest=recent[0], aligned=recent.filter(x=>x.alignedRough).length, urgent=aligned>0;
+        const bucket=recent.length>=10?"10":(recent.length>=3?"3":"1");
+        notify(`${a.id}|fire|${urgent?"U":"N"}${bucket}|${d}`,"🔥",
+          `${urgent?"เร่งด่วน · ":""}พบจุดความร้อนใกล้พื้นที่: ${a.label}`,
+          `${recent.length} จุดใน ≤${e.nearKm} กม. (ภายใน ${CFG.alertFireAgeHours} ชม.)${urgent?` · ลมที่พื้นที่พัดไปทางแนวนี้ ${aligned} จุด (คร่าวๆ)`:""} · ใกล้สุด ${nearest.d.toFixed(1)} กม. · ${firePlaceText(nearest.f)} · ${fmtAge(nearest.f.ageHours)} · Lat ${nearest.f.lat.toFixed(5)}, Lng ${nearest.f.lng.toFixed(5)}`);
+      }
+    }
+  });
+}
+function updateBadge(){
+  const n=S.noti.filter(x=>!x.read).length,b=$("#badge");
+  b.hidden=!n;b.textContent=n>99?"99+":n;$("#bNoti").classList.toggle("ring",n>0);
+}
+function renderNoti(){
+  $("#notiList").innerHTML=S.noti.length?S.noti.map(n=>`<div class="item ${n.read?"":"unread"}"><div style="font-size:22px">${esc(n.icon||"🔔")}</div>
+    <div class="m"><div class="t">${esc(n.title)}</div><div class="d" style="white-space:normal">${esc(n.desc)}<br>${esc(n.time)}</div></div></div>`).join("")
+    :'<div class="empty">ยังไม่มีการแจ้งเตือน<br>ระบบจะแจ้งเมื่อสถานีวัดฝุ่นที่อัปเดตสดเกินเกณฑ์ หรือพบจุดความร้อนสดในระยะใกล้ (ถ้าลมพัดมาทางพื้นที่จะแจ้งเป็นเร่งด่วน)</div>';
+}
+
+function sourceAgeMinutes(srcDate){
+  if(!(srcDate instanceof Date)||isNaN(srcDate.getTime())) return null;
+  return Math.max(0,Math.floor((Date.now()-srcDate.getTime())/60000));
+}
+function getStaleMinutesForArea(a){
+  const e=a?evalArea(a):null;
+  const needFire=Boolean(S.set.key||getProxyPrefix());
+  const relevantDates=[];
+  if(e&&e.src==="station") relevantDates.push(getAreaSourceLastOk(a&&a.id,"air"));
+  else relevantDates.push(getAreaSourceLastOk(a&&a.id,"mw"));
+  if(needFire) relevantDates.push(getAreaSourceLastOk(a&&a.id,"fire"));
+  const valid=relevantDates.filter(d=>d instanceof Date&&!isNaN(d.getTime()));
+  if(!valid.length) return null;
+  const oldest=new Date(Math.min(...valid.map(d=>d.getTime())));
+  return sourceAgeMinutes(oldest);
+}
+function renderFreshnessBanner(a){
+  if(S.st.scanning) return "";
+  if(S.st.offline){
+    return `<div class="warn-banner stale">📡 <div><b>โหมดออฟไลน์:</b> แผนที่และข้อมูลสดจากบริการภายนอกอาจใช้ไม่ได้ แสดงข้อมูลแคชที่มีอยู่เดิมเท่านั้น (ไม่ใช้ยิงแจ้งเตือนสด)</div></div>`;
+  }
+  const staleMin=getStaleMinutesForArea(a);
+  if(staleMin===null||staleMin>=CFG.staleWarnMinutes){
+    const ageTxt=staleMin!==null?`ข้อมูลของพื้นที่นี้เก่าเกิน ${CFG.staleWarnMinutes} นาที (อัปเดตล่าสุดเมื่อ ${staleMin} นาทีที่แล้ว)`:"ยังไม่มีข้อมูลที่อัปเดตสำเร็จสำหรับพื้นที่นี้";
+    return `<div class="warn-banner stale">⚠️ <div><b>ข้อมูลอาจไม่เป็นปัจจุบัน:</b> ${esc(ageTxt)} กรุณากด "⚡ สแกนใหม่" และตรวจการเชื่อมต่อก่อนอ้างอิง</div></div>`;
+  }
+  const failParts=[];
+  const areaMwErr=a?isAreaMwFailed(a.id):S.st.mwErr;
+  if(S.st.airErr&&!(a&&eHasStation(a))) failParts.push("สถานี PM2.5");
+  if((S.set.key||getProxyPrefix())&&(S.st.fireErr||S.fireFromCache)) failParts.push("จุดความร้อน (ใช้ข้อมูลเดิมที่เก็บไว้ · ไม่ใช้แจ้งเตือนสด)");
+  if(areaMwErr) failParts.push(`ลม/แบบจำลองของพื้นที่ ${a?a.label:""} โหลดไม่สำเร็จ`);
+  if(failParts.length){
+    return `<div class="warn-banner partial">ℹ️ <div><b>สถานะการอัปเดต:</b> ${esc(failParts.join(" · "))}</div></div>`;
+  }
+  return "";
+}
+function eHasStation(a){
+  const coord=a&&sanitizeCoord(a.lat,a.lng);
+  if(!coord) return false;
+  return S.stations.filter(isStationFresh).some(s=>hav(coord.lat,coord.lng,s.lat,s.lng)<=CFG.maxStationKm);
+}
+
+let lastSheetSig="";
+function computeSheetSig(a){
+  const staleMin=getStaleMinutesForArea(a);
+  const staleBucket=staleMin===null?"none":(staleMin>=CFG.staleWarnMinutes?`stale_${Math.floor(staleMin/5)}`:"fresh");
+  if(!a) return `no-area|${S.st.scanning}|${staleBucket}|${S.stations.length}|${S.fires.length}|${S.fireMode}|${S.fireFromCache}|${S.st.air}|${S.st.fire}|${S.st.offline}|${lastGpsErr?lastGpsErr.code:""}`;
+  const e=evalArea(a), topFire=e.fires[0], serPts=S.series[String(a.id)]||[];
+  const areaOk=S.areaLastOk[String(a.id)]||{};
+  const mwSt=S.areaMwStatus[String(a.id)]||{};
+  return [a.id,a.label,a.lat.toFixed(5),a.lng.toFixed(5),
+    S.mePos?`${S.mePos.lat.toFixed(5)},${S.mePos.lng.toFixed(5)},${Math.round(S.mePos.acc||50)}`:"",
+    e.src,e.pm,e.comparePm,e.st?e.st.name:"",e.st?e.st.time:"",e.sd.toFixed(1),
+    areaOk.air||0,areaOk.fire||0,areaOk.mw||0,mwSt.ok===false?"0":"1",
+    e.areaFreshMode,e.fires.length,e.nearFires.length,e.farFires.length,e.alignedNearFires.length,
+    topFire?`${topFire.f.lat.toFixed(5)},${topFire.f.lng.toFixed(5)},${topFire.f.date}${topFire.f.t}`:"",
+    e.w?`${e.w.speed}|${e.w.deg}`:"",serPts.length,
+    S.st.scanning?"1":"0",staleBucket,S.st.air,S.st.fire,S.st.airErr?"1":"0",S.st.fireErr?"1":"0",S.fireFromCache?"1":"0",
+    S.st.offline?"1":"0",e.nearKm,e.farKm,S.set.key?"1":"0",S.set.realtimeMin,
+    Math.floor(Date.now()/60000)].join("~");
+}
+
+function renderFireDetails(e){
+  const hasFire=Boolean(S.set.key||getProxyPrefix())&&Boolean(S.fires.length||S.hasFireSnapshot);
+  if(!hasFire||!e.fires.length) return "";
+  const modeTag=e.areaFreshMode==="history24h"
+    ?`ย้อนหลัง ≤24 ชม. ในระยะ ≤${e.farKm} กม. (ไม่มีจุดใหม่ ≤${CFG.freshFireHours} ชม.)`
+    :`มีจุดใหม่ ≤${CFG.freshFireHours} ชม. ในระยะ ≤${e.farKm} กม.`;
+  const staleNote=(S.st.fireErr||S.fireFromCache)?" · ข้อมูลเดิมที่เก็บไว้ (ไม่ใช้แจ้งเตือนสด)":"";
+  const topList=e.fires.slice(0,3).map((x,idx)=>{
+    const place=firePlaceText(x.f);
+    const bandTxt=x.d<=e.nearKm?`ใกล้ (≤${e.nearKm} กม.)`:`ไกล (${e.nearKm}-${e.farKm} กม.)`;
+    const windTag=x.alignedRough?" · <b>ลมที่พื้นที่พัดไปทางแนวนี้ (คร่าวๆ)</b>":"";
+    const navUrl=googleMapsNavUrl(x.f.lat,x.f.lng,S.mePos);
+    return `<div class="fitem">
+      <div class="fitem-top"><span>#${idx+1} · ${esc(bandTxt)} · ห่าง ${x.d.toFixed(1)} กม. · ${esc(fmtAge(x.f.ageHours))}</span></div>
+      <div class="fitem-meta">Lat: <span class="fitem-coord">${x.f.lat.toFixed(5)}°</span> · Lng: <span class="fitem-coord">${x.f.lng.toFixed(5)}°</span></div>
+      <div class="fitem-meta">พื้นที่/ใกล้เคียง: <b>${esc(place)}</b>${windTag}</div>
+      <div class="fitem-meta">${esc(x.f.date)} ${esc(x.f.t)} UTC · <b>${esc(satShortLabel(x.f.sat))}</b> · ความเชื่อมั่น ${fireStrength(x.f)}${x.f.frp>0?` · FRP ${x.f.frp} MW`:""} · พิกเซล ~375 ม.</div>
+      <div class="fitem-acts">
+        <button type="button" class="fitem-btn" data-flat="${x.f.lat}" data-flng="${x.f.lng}">ซูมดูบนแผนที่</button>
+        ${navUrl?`<a class="fitem-btn nav" href="${esc(navUrl)}" target="_blank" rel="noopener noreferrer" data-navlat="${x.f.lat}" data-navlng="${x.f.lng}">🧭 นำทาง Google Maps</a>`:""}
+      </div></div>`;
+  }).join("");
+  return `<div class="fbox">
+    <div class="fbox-h"><span>จุดความร้อนรอบพื้นที่ · ${esc(modeTag)}${esc(staleNote)} (แสดง ${Math.min(3,e.fires.length)} จาก ${e.fires.length} จุด)</span></div>
+    ${topList}</div>`;
+}
+
+function renderTrendSection(areaId){
+  const pts=S.series[String(areaId)]||[], fc=pts.filter(p=>p.isForecast);
+  const maxFc=fc.length?Math.max(...fc.map(p=>p.v)):null;
+  const summary=maxFc!==null?`พยากรณ์สูงสุด 24 ชม. ~${maxFc.toFixed(1)} µg/m³`:(pts.length?`ข้อมูลรายชั่วโมง ${pts.length} จุด`:"รอข้อมูล");
+  return `<div class="trend-box">
+    <div class="trend-h"><span>ย้อนหลัง &amp; พยากรณ์ PM2.5 (Open-Meteo CAMS)</span><small>${esc(summary)}</small></div>
+    <canvas id="trendCanvas" class="trend-canvas" aria-label="กราฟ PM2.5 ย้อนหลังและพยากรณ์"></canvas>
+    <div class="trend-leg">
+      <span><i style="background:#4f46e5"></i>ย้อนหลัง 24 ชม.</span>
+      <span><i style="background:#06b6d4"></i>พยากรณ์ 24 ชม.</span>
+      <span><i style="background:#eab308"></i>เกณฑ์ 37.5 µg/m³</span>
+    </div></div>`;
+}
+
+function renderSheet(force=false){
+  const pool=activeAreas();
+  const a=pool.find(x=>String(x.id)===String(S.sel))||pool[0]||null;
+  if(a&&String(S.sel)!==String(a.id)){
+    S.sel=String(a.id);
+    store("ag.sel",S.sel);
+  }
+  const sig=computeSheetSig(a);
+  if(!force&&sig===lastSheetSig) return;
+  lastSheetSig=sig;
+  const bannerHtml=renderFreshnessBanner(a);
+  const activeId=a?String(a.id):"";
+  const chips=pool.map(x=>`<button type="button" class="chip ${String(x.id)===activeId?"on":""}" data-sel="${esc(x.id)}">${esc(x.label)}</button>`).join("")+`<button type="button" class="chip add" id="cAdd">＋ เพิ่มพื้นที่</button>`;
+  let body="";
+  if(!a){
+    body=`<div class="card"><b>กรุงเทพมหานคร</b><p class="note" style="margin:6px 0 0">กำลังเตรียมพื้นที่เริ่มต้น หรือกด "＋ เพิ่มพื้นที่"</p></div>`;
+  }else{
+    const e=evalArea(a), isEst=e.src==="model";
+    const scalePm=isEst&&e.comparePm!=null?e.comparePm:e.pm, l=scalePm!=null?lvl(scalePm):null;
+    const posLine=a.isMe?`พิกัด GPS จริง (${a.lat.toFixed(5)}, ${a.lng.toFixed(5)} · ±${Math.round(S.mePos?S.mePos.acc||50:0)} ม.) · `:(a.isDefault?`พื้นที่เริ่มต้น (${a.lat.toFixed(4)}, ${a.lng.toFixed(4)}) · `:"");
+    const hasFire=Boolean(S.set.key||getProxyPrefix())&&Boolean(S.fires.length||S.hasFireSnapshot);
+    const nearCount=hasFire?e.nearFires.length:"--";
+    const farBandCount=hasFire?e.farFires.length:"--";
+    const alignedCount=hasFire?e.alignedNearFires.length:0;
+    const fireOkDate=getAreaSourceLastOk(a.id,"fire");
+    const fireAgeLabel=fireOkDate?fmtAgeFromMs(fireOkDate.getTime()):"";
+    const windHtml=e.w
+      ?`<div class="wbar"><span class="warr" style="transform:rotate(${arrowCssDeg(e.w.deg)}deg)">➤</span><span>ลมจุดเดียวที่พื้นที่ <b>${e.w.speed} กม./ชม.</b> · ${esc(windToLabel(e.w.deg))} (บ่งชี้คร่าวๆ)</span></div>`
+      :(e.mwAreaErr
+        ?`<div class="wbar" style="color:var(--danger)">⚠️ <span>โหลดข้อมูลลม/แบบจำลองของพื้นที่นี้ไม่สำเร็จ</span></div>`
+        :`<div class="wbar"><span>กำลังโหลดข้อมูลทิศทางและความเร็วลม…</span></div>`);
+    const oldFireTag=(S.st.fireErr||S.fireFromCache)&&fireAgeLabel?` · ชุดข้อมูลเดิมอัปเดต ${fireAgeLabel}`:"";
+    const fireSub=hasFire
+      ?(e.fires.length
+        ?`ในระยะ ≤${e.farKm} กม. รวม ${e.fires.length} จุด · ใกล้สุด ${e.fires[0].d.toFixed(1)} กม. (${fmtAge(e.fires[0].f.ageHours)})${alignedCount?` · ลมพัดมาทางพื้นที่ ${alignedCount} จุด (คร่าวๆ)`:""} · ${SCOPE_LABEL} ${S.fires.length} จุด${oldFireTag}`
+        :`ไม่พบในระยะ ${e.farKm} กม. (ไม่ได้แปลว่าไม่มีไฟ) · ${SCOPE_LABEL} ${S.fires.length} จุด${oldFireTag}`)
+      :"ใส่ MAP_KEY หรือ Worker URL ในตั้งค่า";
+    const srcBadge=e.src==="station"?`<span class="src-tag">สถานีตรวจวัด</span>`:(e.src==="model"?`<span class="src-tag">ค่าประมาณ (แบบจำลอง)</span>`:"");
+    const stAge=e.st&&e.st.ts?fmtAgeFromMs(e.st.ts):"";
+    const airFetchDate=getAreaSourceLastOk(a.id,"air");
+    const airFetchAge=airFetchDate?fmtAgeFromMs(airFetchDate.getTime()):"";
+    const pmDetail=l
+      ?(e.src==="station"
+        ?`${posLine}<b>${l.t}</b><br>สถานี ${esc(e.st.name)} ห่าง ${e.sd.toFixed(1)} กม.${isFinite(e.st.aqi)&&e.st.aqi>=0?` · AQI ${e.st.aqi}`:""} · สถานีวัดเมื่อ ${esc(e.st.time||"ไม่ระบุเวลา")}${stAge?` (${esc(stAge)})`:""}${airFetchAge?` · ดึงข้อมูลสำเร็จ ${esc(airFetchAge)}`:""}`
+        :`${posLine}<b>ค่าประมาณจากแบบจำลอง (Open-Meteo CAMS)</b> — ค่าปัจจุบัน ${e.pm} µg/m³${e.m.avg24!=null?` (เทียบเกณฑ์ 24 ชม. ด้วยค่าเฉลี่ยย้อนหลัง ${e.m.avg24} µg/m³ · ระดับ${lvl(e.m.avg24).n})`:""} เพราะไม่มีสถานีที่สดภายใน ${CFG.maxStationKm} กม. · ไม่ใช้ค่าประมาณยิงแจ้งเตือน`)
+      :`${posLine}${e.mwAreaErr?"โหลดข้อมูลฝุ่น/แบบจำลองของพื้นที่นี้ไม่สำเร็จ ลองกดสแกนใหม่":"ยังไม่มีข้อมูลฝุ่นของพื้นที่นี้ ลองกดสแกนใหม่"}`;
+    body=`<div class="hero">
+      <div class="card fcard">
+        <div class="sm" style="margin-top:0"><b>จุดความร้อน · ≤24 ชม.</b></div>
+        <div class="fgap"><span>ใกล้ ≤${e.nearKm}</span><strong>${nearCount}</strong><span>ไกล ${e.nearKm}-${e.farKm}</span><strong>${farBandCount}</strong></div>
+        <div class="sm">${esc(fireSub)}</div>
+      </div>
+      <div class="card pmcard ${isEst?"est-card":""} ${l&&l.dk?"dark":""}" style="background:${l?l.c:"var(--soft)"};${l?"":"color:var(--muted);text-shadow:none"}">
+        <div class="big">${e.pm!=null?e.pm:"--"}</div><div class="sm">PM2.5 µg/m³</div><div class="sm"><b>${l?l.n:"ยังไม่มีข้อมูล"}</b></div>${srcBadge}</div>
+    </div>
+    ${renderFireDetails(e)}${renderTrendSection(a.id)}${windHtml}
+    <p class="note">${pmDetail}</p>
+    <p class="disc">ข้อมูลดาวเทียมมีดีเลย์ราว 3 ชม. ไม่พบจุดความร้อนไม่ได้แปลว่าไม่มีไฟ ไม่ใช่ข้อมูลทางการ</p>`;
+    if(hasFire&&e.fires.length) resolveFirePlaces(e.fires.slice(0,3));
+  }
+  const msg=S.st.air||S.st.fire;
+  const scanStateTxt=S.st.scanning?"กำลังสแกนข้อมูล...":(S.st.time?`สแกนรอบล่าสุด ${S.st.time.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit",second:"2-digit"})} (ทุก ${S.set.realtimeMin} นาที)`:"รอสแกนข้อมูล");
+  const hasErr=(S.st.airErr&&!Object.keys(S.model).length)||S.st.fireErr||(a&&isAreaMwFailed(a.id))||S.st.offline;
+  $("#sheet").innerHTML=`${bannerHtml}<div class="chips">${chips}</div>${body}
+    <div class="status ${hasErr?"err":""}">${esc(scanStateTxt)}${msg?` · ${esc(msg)}`:""}</div>
+    <div class="row"><button type="button" class="btn live" id="bRef" ${S.st.scanning?"disabled":""}>⚡ สแกนใหม่</button>${a?`<button type="button" class="btn" id="bShare">🔗 แชร์</button><button type="button" class="btn pri" id="bFly">ดูบนแผนที่</button>`:""}</div>`;
+  if(a) requestAnimationFrame(()=>drawTrendChart(a.id));
+}
+
+function selectArea(id){
+  const sid=String(id); S.sel=sid; store("ag.sel",sid);
+  const a=curArea();
+  renderSheet(true); renderMap();
+  if(a) requestAnimationFrame(()=>{centerArea(a,true);triggerScan2Laps(a.lat,a.lng,getFarKm())});
+}
+
+$("#sheet").addEventListener("click",ev=>{
+  if(picking) return;
+  const navLink=ev.target.closest("[data-navlat]");
+  if(navLink){
+    const coord=sanitizeCoord(navLink.dataset.navlat,navLink.dataset.navlng);
+    if(!coord){ev.preventDefault();toast("พิกัดจุดความร้อนไม่ถูกต้อง");return}
+    const freshUrl=googleMapsNavUrl(coord.lat,coord.lng,S.mePos);
+    if(freshUrl) navLink.href=freshUrl;
+    return;
+  }
+  const fBtn=ev.target.closest("[data-flat]");
+  if(fBtn){
+    ev.preventDefault();
+    const coord=sanitizeCoord(fBtn.dataset.flat,fBtn.dataset.flng);
+    if(!coord){toast("พิกัดจุดความร้อนไม่ถูกต้อง");return}
+    focusCoord(coord.lat,coord.lng,12);
+    toast(`ซูมไปยังจุดความร้อน Lat ${coord.lat.toFixed(5)}, Lng ${coord.lng.toFixed(5)}`);
+    return;
+  }
+  const c=ev.target.closest("[data-sel]");
+  if(c){ev.preventDefault();selectArea(c.dataset.sel);return}
+  if(ev.target.closest("#cAdd")) openAdd();
+  if(ev.target.closest("#bRef")) refresh(true);
+  if(ev.target.closest("#bShare")){const a=curArea();if(a) shareArea(a)}
+  if(ev.target.closest("#bFly")){const a=curArea();if(a){centerArea(a,true);triggerScan2Laps(a.lat,a.lng,getFarKm())}}
+});
+
+const pages=["pNoti","pAdd","pSet"];
+const openP=id=>{clearScanVisuals();if(S.fullMap){S.fullMap=false;$("#app").classList.remove("fullmap")}$("#"+id).classList.add("open")};
+const closeAll=()=>pages.forEach(p=>$("#"+p).classList.remove("open"));
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeAll);
+$("#bNoti").onclick=()=>{renderNoti();openP("pNoti");S.noti.forEach(n=>n.read=true);store("ag.noti",S.noti);updateBadge()};
+$("#bClearNoti").onclick=()=>{S.noti=[];store("ag.noti",S.noti);renderNoti();updateBadge()};
+$("#bSet").onclick=()=>{fillSettings();renderAreaList();openP("pSet")};
+
+let rtTimer=null;
+function restartRealtimeTimer(){
+  if(rtTimer){clearInterval(rtTimer);rtTimer=null}
+  rtTimer=setInterval(()=>{if(!document.hidden)refresh()},getRefreshMs());
+}
+function fillSettings(){
+  $("#sRtMin").value=String(S.set.realtimeMin||CFG.realtimeMin);
+  $("#sPm").value=S.set.pm; $("#sRad").value=getFarKm();
+  $("#sBrowser").checked=S.set.browser; $("#sKey").value=S.set.key; $("#sProxy").value=S.set.proxy||"";
+}
+$("#bSaveSet").onclick=async()=>{
+  const pm=parseFloat($("#sPm").value),rad=parseFloat($("#sRad").value),rtMin=parseInt($("#sRtMin").value,10)||CFG.realtimeMin;
+  if(!(pm>0)||!(rad>0)){toast("กรุณากรอกตัวเลขที่ถูกต้อง");return}
+  const wantB=$("#sBrowser").checked;
+  if(wantB&&"Notification" in window&&Notification.permission==="default"){try{await Notification.requestPermission()}catch{}}
+  S.set.pm=pm; S.set.radius=Math.max(getNearKm(),rad); S.set.realtimeMin=rtMin;
+  S.set.browser=wantB&&"Notification" in window&&Notification.permission==="granted";
+  if(wantB&&!S.set.browser) toast("เบราว์เซอร์ไม่อนุญาตการแจ้งเตือน");
+  const newKey=$("#sKey").value.trim(),keyChanged=newKey!==S.set.key;S.set.key=newKey;
+  const newProxy=$("#sProxy").value.trim(),proxyChanged=newProxy!==(S.set.proxy||"");S.set.proxy=newProxy;
+  store("ag.set",S.set); restartRealtimeTimer(); renderMap(); renderSheet(true);
+  const curA=curArea();
+  if(curA){centerArea(curA,true);triggerScan2Laps(curA.lat,curA.lng,getFarKm())}
+  if(keyChanged||proxyChanged) refresh(true); else checkAlerts();
+  toast("บันทึกแล้ว");
+};
+
+/* ---------- PWA: manifest + service worker ---------- */
+const ICON_SVG='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><defs><linearGradient id="ag" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient></defs><rect x="0" y="0" width="512" height="512" rx="112" ry="112" fill="url(#ag)"/><g transform="translate(0 -14)" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"><path d="M124 256 C124 134, 388 134, 388 256" stroke-opacity=".75"/><path d="M132 308 C102 312, 88 332, 92 356" stroke-opacity=".75"/><path d="M380 308 C410 312, 424 332, 420 356" stroke-opacity=".75"/></g><path d="M256 134 L328 238 C354 250, 374 272, 374 300 C374 350, 328 388, 256 396 C184 388, 138 350, 138 300 C138 272, 158 250, 184 238 Z" fill="#ffffff"/><circle cx="172" cy="308" r="40" fill="#3730a3"/><circle cx="172" cy="308" r="24" fill="none" stroke="#fdba74" stroke-width="11"/><circle cx="172" cy="308" r="7" fill="#ffffff"/><circle cx="340" cy="308" r="40" fill="#3730a3"/><circle cx="340" cy="308" r="24" fill="none" stroke="#fdba74" stroke-width="11"/><circle cx="340" cy="308" r="7" fill="#ffffff"/><circle cx="256" cy="348" r="36" fill="#4f46e5"/><circle cx="256" cy="348" r="21" fill="none" stroke="#ffffff" stroke-width="7"/><circle cx="256" cy="348" r="6" fill="#ffffff"/></svg>';
+const ICON_PNG={};
+function svgToPng(size){
+  return new Promise(res=>{
+    try{
+      const img=new Image();
+      img.onload=()=>{try{const c=document.createElement("canvas");c.width=c.height=size;c.getContext("2d").drawImage(img,0,0,size,size);res(c.toDataURL("image/png"))}catch{res(null)}};
+      img.onerror=()=>res(null);
+      img.src="data:image/svg+xml,"+encodeURIComponent(ICON_SVG);
+    }catch{res(null)}
+  });
+}
+async function ensurePngIcons(){
+  if(ICON_PNG[192]&&ICON_PNG[512]) return;
+  const [p180,p192,p512]=await Promise.all([180,192,512].map(svgToPng));
+  ICON_PNG[192]=p192;ICON_PNG[512]=p512;
+  if(p180&&!document.querySelector('link[rel="apple-touch-icon"]')){
+    const ic=document.createElement("link");ic.rel="apple-touch-icon";ic.sizes="180x180";ic.href=p180;document.head.append(ic);
+  }
+}
+function setupIcons(){
+  const logo=$(".logo");if(logo) logo.innerHTML=ICON_SVG;
+  if(!document.querySelector('link[rel="icon"]')){
+    const fav=document.createElement("link");fav.rel="icon";fav.type="image/svg+xml";fav.href="data:image/svg+xml,"+encodeURIComponent(ICON_SVG);document.head.append(fav);
+  }
+  const defer=window.requestIdleCallback||((fn)=>setTimeout(fn,300));
+  defer(()=>{ensurePngIcons().catch(()=>{})});
+}
+const SW_SRC=`const CACHE="thai-airguard-v2";
+const SHELL=["./","./index.html","./manifest.json"];
+self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).catch(()=>{}));self.skipWaiting()});
+self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).catch(()=>{}));self.clients.claim()});
+self.addEventListener("fetch",e=>{
+  if(e.request.method!=="GET")return;
+  const u=new URL(e.request.url);
+  if(u.origin!==self.location.origin)return;
+  e.respondWith(fetch(e.request).then(r=>{if(r.ok){const cp=r.clone();caches.open(CACHE).then(c=>c.put(e.request,cp)).catch(()=>{})}return r}).catch(()=>caches.match(e.request).then(m=>m||caches.match("./index.html"))));
+});`;
+function buildManifest(){
+  const icons=(ICON_PNG[192]&&ICON_PNG[512])
+    ?[{src:ICON_PNG[192],sizes:"192x192",type:"image/png",purpose:"any"},{src:ICON_PNG[512],sizes:"512x512",type:"image/png",purpose:"any"},{src:ICON_PNG[512],sizes:"512x512",type:"image/png",purpose:"maskable"}]
+    :[];
+  return {name:"Thai AirGuard",short_name:"AirGuard",description:`PM2.5 จุดความร้อน (${SCOPE_LABEL}) และทิศทางลม`,lang:"th",
+    start_url:"./",scope:"./",display:"standalone",background_color:"#f4f7ff",theme_color:"#4f46e5",icons};
+}
+async function setupPwa(){
+  try{setupIcons()}catch{}
+  const secure=location.protocol==="https:"||location.hostname==="localhost"||location.hostname==="127.0.0.1";
+  if(!/^https?:$/.test(location.protocol)) return;
+  try{
+    if(!document.querySelector('link[rel="manifest"]')){
+      let href=null;
+      try{const r=await fetch("./manifest.json",{cache:"no-store"});if(r.ok){const j=await r.json();if(j&&j.name)href="./manifest.json"}}catch{}
+      if(!href){
+        await ensurePngIcons().catch(()=>{});
+        const mf=buildManifest();
+        mf.start_url=location.href.split("#")[0];mf.scope=new URL("./",location.href).href;
+        href=URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:"application/manifest+json"}));
+      }
+      const l=document.createElement("link");l.rel="manifest";l.href=href;document.head.append(l);
+    }
+  }catch{}
+  if("serviceWorker" in navigator&&secure){
+    try{
+      const r=await fetch("./sw.js",{cache:"no-store"});
+      const ct=r.headers.get("content-type")||"";
+      if(r.ok&&/javascript|ecmascript/i.test(ct)) await navigator.serviceWorker.register("./sw.js");
+    }catch{}
+  }
+}
+
+function triggerFileDownload(filename,content,mimeType){
+  try{
+    const blob=new Blob([content],{type:mimeType});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download=filename;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+    toast(`ดาวน์โหลด ${filename} แล้ว`);
+  }catch{toast("ไม่สามารถสร้างไฟล์ดาวน์โหลดบนอุปกรณ์นี้ได้")}
+}
+async function getSourceHtml(){
+  if(/^https?:$/.test(location.protocol)){
+    try{const r=await fetch(location.href.split("#")[0],{cache:"no-store"});if(r.ok){const t=await r.text();if(t&&t.length>1000) return {text:t,exact:true}}}catch{}
+  }
+  return {text:"<!DOCTYPE html>\n"+document.documentElement.outerHTML,exact:false};
+}
+$("#bDlHtml").onclick=async()=>{
+  const src=await getSourceHtml();
+  if(!src.exact) toast("เปิดจากไฟล์ในเครื่อง ไฟล์ที่โหลดอาจไม่ตรงต้นฉบับ 100%");
+  triggerFileDownload("index.html",src.text,"text/html;charset=utf-8");
+};
+$("#bDlSw").onclick=async()=>{
+  await ensurePngIcons().catch(()=>{});
+  triggerFileDownload("manifest.json",JSON.stringify(buildManifest(),null,2),"application/manifest+json;charset=utf-8");
+  setTimeout(()=>triggerFileDownload("sw.js",SW_SRC,"application/javascript;charset=utf-8"),400);
+};
+
+function renderAreaList(){
+  $("#areaList").innerHTML=(S.areas.length?S.areas.map(a=>`<div class="item"><div class="m"><div class="t">${esc(a.label)}</div>
+    <div class="d">${esc(a.desc||"")} ${a.lat.toFixed(4)}, ${a.lng.toFixed(4)}</div></div>
+    <button type="button" class="x" data-del="${esc(a.id)}" aria-label="ลบ ${esc(a.label)}">🗑</button></div>`).join(""):'<div class="empty" style="padding:8px">ยังไม่มีพื้นที่ที่บันทึกไว้ (ใช้กรุงเทพมหานครเป็นพื้นที่เริ่มต้น)</div>');
+}
+$("#areaList").addEventListener("click",ev=>{
+  const b=ev.target.closest("[data-del]");if(!b)return;
+  const id=String(b.dataset.del);S.areas=S.areas.filter(a=>String(a.id)!==id);
+  delete S.areaLastOk[id]; delete S.areaMwStatus[id];
+  if(String(S.sel)===id){S.sel=S.mePos?ME_ID:(S.areas[0]?String(S.areas[0].id):DEFAULT_BKK_AREA.id);store("ag.sel",S.sel)}
+  store("ag.areas",S.areas);renderAreaList();renderSheet(true);renderMap();toast("ลบพื้นที่แล้ว");
+});
+$("#bAdd").onclick=openAdd;
+
+function setDraft(lat,lng,desc){
+  const coord=sanitizeCoord(lat,lng);
+  if(!coord){toast("พิกัดละติจูดหรือลองจิจูดไม่ถูกต้อง");return}
+  S.draft={lat:coord.lat,lng:coord.lng,desc};
+  $("#draft").innerHTML=`📍 <b>${esc(desc||"ตำแหน่งที่เลือก")}</b><br><small>Lat ${coord.lat.toFixed(5)}, Lng ${coord.lng.toFixed(5)}</small>`;
+  if(!$("#aLabel").value&&desc) $("#aLabel").placeholder=desc.split(",")[0].slice(0,40);
+}
+function resetAddForm(){
+  S.draft=null; KS.forEach(k=>{SEL[k]=null;$(INP[k]).value="";$(BOX[k]).innerHTML=""});
+  $("#gRes").innerHTML="";$("#q").value="";$("#qRes").innerHTML="";
+  $("#aLabel").value="";$("#aLabel").placeholder="เช่น บ้าน, ที่ทำงาน";$("#draft").textContent="ยังไม่ได้เลือกตำแหน่ง";
+}
+function openAdd(){closeAll();openP("pAdd");loadPD()}
+$("#bSave").onclick=()=>{
+  const coord=S.draft&&sanitizeCoord(S.draft.lat,S.draft.lng);
+  if(!coord){
+    if($("#tIn").value.trim()||$("#dIn").value.trim()||$("#pIn").value.trim()){findByTyped();toast("เลือกตำแหน่งจากรายการที่ค้นเจอ แล้วกดบันทึกอีกครั้ง")}
+    else toast("เลือกตำแหน่งก่อนบันทึก");
+    return}
+  const label=($("#aLabel").value.trim()||$("#aLabel").placeholder.trim()||"พื้นที่ของฉัน").slice(0,40);
+  const a={id:String(Date.now()),label,lat:coord.lat,lng:coord.lng,desc:S.draft.desc||""};
+  S.areas.push(a);store("ag.areas",S.areas);resetAddForm();
+  closeAll();selectArea(a.id);fetchModelAndWind(activeRunId).then(()=>{recomputeOverallLastOkTime();renderSheet(true);renderMap();checkAlerts()}).catch(()=>{});toast("บันทึกพื้นที่แล้ว");
+};
+async function geocode(q){
+  if(!navigator.onLine) throw new Error("offline");
+  const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=th&accept-language=th&limit=6&q="+encodeURIComponent(q));
+  if(!r.ok)throw new Error(r.status);return r.json();
+}
+function showGeo(box,res){
+  box.innerHTML=Array.isArray(res)&&res.length?res.map((r,i)=>`<button type="button" class="res" data-i="${i}">${esc(r.display_name)}</button>`).join(""):'<div class="status">ไม่พบสถานที่ ลองพิมพ์ชื่อให้สั้นลง หรือใช้ปักหมุดบนแผนที่</div>';
+  box.onclick=ev=>{const b=ev.target.closest("[data-i]");if(!b)return;const r=res[+b.dataset.i];setDraft(r.lat,r.lon,r.display_name);box.innerHTML=""};
+}
+async function findByTyped(){
+  if(!navigator.onLine){toast("โหมดออฟไลน์ · ค้นหาสถานที่ออนไลน์ไม่ได้");return}
+  const t=$("#tIn").value.trim(),d=$("#dIn").value.trim(),p=$("#pIn").value.trim();
+  if(!t&&!d&&!p){toast("พิมพ์ชื่อตำบล อำเภอ หรือจังหวัดก่อน");return}
+  const box=$("#gRes");box.innerHTML='<div class="status">กำลังค้นหา…</div>';
+  const forms=[[t&&"ตำบล "+NF.t(t),d&&"อำเภอ "+NF.d(d),p&&"จังหวัด "+NF.p(p)],[t,d,p]].map(a=>a.filter(Boolean).join(" "));
+  try{let res=[];for(const q of forms){res=await geocode(q);if(res.length)break}showGeo(box,res)}
+  catch{box.innerHTML='<div class="status err">ค้นหาไม่สำเร็จ อาจออฟไลน์หรือเชื่อมต่อไม่ได้ ใช้ปักหมุดบนแผนที่หรือ GPS แทนได้ครับ</div>'}
+}
+async function doSearch(){
+  if(!navigator.onLine){toast("โหมดออฟไลน์ · ค้นหาสถานที่ออนไลน์ไม่ได้");return}
+  const q=$("#q").value.trim();if(!q)return;
+  $("#qRes").innerHTML='<div class="status">กำลังค้นหา…</div>';
+  try{showGeo($("#qRes"),await geocode(q))}
+  catch{$("#qRes").innerHTML='<div class="status err">ค้นหาไม่สำเร็จ อาจออฟไลน์หรือเชื่อมต่อไม่ได้ ลองใหม่อีกครั้งเมื่อออนไลน์</div>'}
+}
+$("#bQ").onclick=doSearch;$("#q").onkeydown=e=>{if(e.key==="Enter")doSearch()};
+$("#bGps").onclick=async()=>{
+  toast("กำลังจับสัญญาณ GPS ความแม่นยำสูง…");
+  try{const p=await getGpsExact();applyDevicePos(p,false,true);setDraft(p.lat,p.lng,`ตำแหน่ง GPS อุปกรณ์ (±${Math.round(p.acc)} ม.)`);toast("ได้พิกัด GPS ของอุปกรณ์แล้ว")}
+  catch(e){lastGpsErr=e;renderSheet(true);toast(gpsErrMsg(e))}
+};
+
+let picking=false,pickM=null,pickLL=null;
+$("#bPick").onclick=()=>{
+  if(!hasMap()){toast("แผนที่ยังไม่พร้อมในโหมดนี้ ใช้ค้นหาชื่อหรือ GPS แทนได้ครับ");return}
+  closeAll();picking=true;
+  const dCoord=S.draft&&sanitizeCoord(S.draft.lat,S.draft.lng);
+  pickLL=dCoord?{lat:dCoord.lat,lng:dCoord.lng}:null;
+  $("#map").classList.add("picking");$("#pickbar").classList.add("show");$("#sheet").style.display="none";
+  $("#pickOk").disabled=!pickLL;$("#pickTxt").textContent="แตะบนแผนที่เพื่อปักหมุด ลากหมุดเพื่อปรับตำแหน่ง";
+};
+function placePick(ll){
+  if(!hasMap()) return;
+  const coord=ll&&sanitizeCoord(ll.lat,ll.lng); if(!coord) return;
+  pickLL={lat:coord.lat,lng:coord.lng};
+  if(pickM) pickM.setLatLng([coord.lat,coord.lng]);
+  else{pickM=L.marker([coord.lat,coord.lng],{draggable:true}).addTo(map);
+    pickM.on("dragend",()=>{const p=pickM.getLatLng();const c=sanitizeCoord(p.lat,p.lng);if(c){pickLL={lat:c.lat,lng:c.lng};showPick()}})}
+  showPick();
+}
+function showPick(){$("#pickTxt").textContent=`Lat ${pickLL.lat.toFixed(5)}, Lng ${pickLL.lng.toFixed(5)}`;$("#pickOk").disabled=false}
+if(hasMap()) map.on("click",e=>{if(picking) placePick(e.latlng)});
+function endPick(){
+  picking=false;$("#map").classList.remove("picking");$("#pickbar").classList.remove("show");$("#sheet").style.display="";
+  if(pickM&&hasMap()){map.removeLayer(pickM);pickM=null} openP("pAdd");
+}
+$("#pickNo").onclick=endPick;
+$("#pickOk").onclick=()=>{if(!pickLL||!validLatLng(pickLL.lat,pickLL.lng))return;const p=pickLL;endPick();setDraft(p.lat,p.lng,"ตำแหน่งที่ปักหมุด")};
+
+const IDB_NAME="ThaiAirGuardDB", IDB_STORE="pdCache", IDB_KEY="all_th_areas_v2";
+function openPdDb(){
+  return new Promise((res,rej)=>{
+    if(!("indexedDB" in window)){rej(new Error("no idb"));return}
+    const req=indexedDB.open(IDB_NAME,1);
+    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE)};
+    req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error||new Error("idb open"));
+  });
+}
+async function readPdIdb(){
+  try{
+    const db=await openPdDb();
+    return await new Promise((res,rej)=>{
+      const tx=db.transaction(IDB_STORE,"readonly"), g=tx.objectStore(IDB_STORE).get(IDB_KEY);
+      g.onsuccess=()=>{const val=g.result;const okShape=val&&Array.isArray(val.rows)&&val.rows.length>1000&&val.rows.slice(0,30).every(r=>r&&r.s&&r.s.name_th&&r.d&&r.d.name_th&&r.p&&r.p.name_th);res(okShape&&(Date.now()-(val.ts||0))<30*864e5?val.rows:null)};
+      g.onerror=()=>rej(g.error);
+    });
+  }catch{return null}
+}
+async function writePdIdb(rows){
+  try{
+    const db=await openPdDb();
+    await new Promise((res,rej)=>{
+      const tx=db.transaction(IDB_STORE,"readwrite"), p=tx.objectStore(IDB_STORE).put({ts:Date.now(),rows},IDB_KEY);
+      p.onsuccess=()=>res();p.onerror=()=>rej(p.error);
+    });
+  }catch{}
+}
+
+let loadingPD=false;
+const SEL={t:null,d:null,p:null},KEY={t:"tn",d:"dn",p:"pn"},INP={t:"#tIn",d:"#dIn",p:"#pIn"},BOX={t:"#tSug",d:"#dSug",p:"#pSug"},KS=["t","d","p"];
+const NF={t:s=>String(s||"").replace(/^(แขวง|ตำบล|ต\.)\s*/,"").trim(),
+          d:s=>String(s||"").replace(/^(เขต|อำเภอ|อ\.)\s*/,"").trim(),
+          p:s=>String(s||"").replace(/^(จังหวัด|จ\.)\s*/,"").trim()};
+const GH=["https://cdn.jsdelivr.net/gh/kongvut/thai-province-data@master/api/latest/","https://raw.githubusercontent.com/kongvut/thai-province-data/refs/heads/master/api/latest/"];
+async function fetchAreaRows(){
+  const cached=await readPdIdb();
+  if(cached&&cached.length) return cached;
+  if(!navigator.onLine) return [];
+  for(const base of GH){
+    try{
+      const [P,D,T]=await Promise.all(["province.json","district.json","sub_district.json"].map(f=>getJSON(base+f,12000)));
+      if(!Array.isArray(P)||!Array.isArray(D)||!Array.isArray(T)) continue;
+      const pm=new Map(P.map(x=>[x.id,x])),dm=new Map(D.map(x=>[x.id,x])),rows=[];
+      T.forEach(x=>{const d=dm.get(x.district_id),p=d&&pm.get(d.province_id);if(d&&p)rows.push({s:x,d,p,tn:NF.t(x.name_th),dn:d.name_th,pn:p.name_th})});
+      if(rows.length>1000){await writePdIdb(rows);return rows}
+    }catch{}
+  }
+  return [];
+}
+async function loadPDInner(){
+  if(ALL.length||loadingPD)return;loadingPD=true;
+  const st=$("#pdStat");st.classList.remove("err");st.textContent="กำลังโหลดรายชื่อตำบลทั่วประเทศ…";
+  try{
+    const rows=await fetchAreaRows();
+    if(!rows.length)throw 0;ALL=rows;buildGrid();
+    st.textContent=`พร้อมค้นหา ${new Set(rows.map(r=>r.tn)).size.toLocaleString("th-TH")} ชื่อตำบล · พิมพ์ในช่องใดก็ได้`;
+    if(S.fires.length) renderSheet(true);
+  }catch{st.classList.add("err");st.textContent=navigator.onLine?"โหลดรายชื่อตำบลไม่สำเร็จ กดปุ่ม “หาตำแหน่งจากชื่อที่พิมพ์” ด้านล่างแทน":"ออฟไลน์อยู่ · ยังไม่มีแคชรายชื่อตำบลในเครื่อง"}
+  loadingPD=false;
+  KS.forEach(k=>{if(document.activeElement===$(INP[k]))suggest(k)});
+}
+let pdPromise=null;
+function loadPD(){
+  if(ALL.length) return Promise.resolve();
+  if(!pdPromise) pdPromise=loadPDInner().finally(()=>{pdPromise=null});
+  return pdPromise;
+}
+const rowsFor=ex=>ALL.filter(r=>KS.every(k=>k===ex||!SEL[k]||r[KEY[k]]===SEL[k]));
+function cands(k,q){
+  let list=[...new Set(rowsFor(k).map(r=>r[KEY[k]]))];q=NF[k](q);
+  if(q){const f=NF[k];list=[...list.filter(v=>f(v).startsWith(q)),...list.filter(v=>!f(v).startsWith(q)&&f(v).includes(q))]}
+  else list.sort((a,b)=>a.localeCompare(b,"th"));
+  return list;
+}
+function suggest(k){
+  KS.forEach(x=>{if(x!==k)$(BOX[x]).innerHTML=""});
+  const box=$(BOX[k]),q=$(INP[k]).value.trim();
+  if(!ALL.length){box.innerHTML=`<div class="status">${loadingPD?"กำลังโหลดรายชื่อ…":"โหลดรายชื่อไม่สำเร็จ ใช้ค้นหาชื่อสถานที่ด้านล่างแทน"}</div>`;if(!loadingPD)loadPD();return}
+  const list=cands(k,q);
+  if(!q&&list.length>40){box.innerHTML="";return}
+  box.innerHTML=list.length?list.slice(0,10).map(v=>{
+      const n=k==="t"?rowsFor("t").filter(r=>r.tn===v).length:0;
+      return `<button type="button" class="res" data-v="${esc(v)}">${esc(v)}${n>1?` <small>· ${n} แห่ง</small>`:""}</button>`}).join("")
+    :'<div class="status">ไม่พบชื่อนี้ในตัวเลือกที่สอดคล้องกับช่องอื่น</div>';
+}
+function pick(k,v){
+  SEL[k]=v;$(INP[k]).value=v;$(BOX[k]).innerHTML="";
+  if(!rowsFor().length)KS.filter(x=>x!==k).forEach(x=>{SEL[x]=null;$(INP[x]).value=""});
+  for(let i=0;i<3;i++)KS.forEach(x=>{if(!SEL[x]){const c=cands(x,"");if(c.length===1){SEL[x]=c[0];$(INP[x]).value=c[0]}}});
+  const next=KS.find(x=>!SEL[x]);
+  if(next)suggest(next);else resolveArea();
+}
+async function resolveArea(){
+  const r=rowsFor()[0];if(!r)return;
+  const name=`${r.s.name_th} ${r.d.name_th} ${r.p.name_th}`;
+  const coord=sanitizeCoord(r.s.lat,r.s.long!==undefined?r.s.long:r.s.lng);
+  if(coord){setDraft(coord.lat,coord.lng,name);return}
+  try{const g=await geocode(name);if(!g.length)throw 0;setDraft(g[0].lat,g[0].lon,name)}
+  catch{toast("หาพิกัดของตำบลนี้ไม่ได้ ลองค้นหาหรือปักหมุดแทน")}
+}
+KS.forEach(k=>{
+  const el=$(INP[k]);
+  el.oninput=()=>{SEL[k]=null;suggest(k)};
+  el.onfocus=()=>suggest(k);
+  el.onkeydown=e=>{if(e.key!=="Enter")return;e.preventDefault();
+    const q=el.value.trim(),c=cands(k,q),ex=c.find(v=>NF[k](v)===NF[k](q))||(c.length===1?c[0]:null);if(ex)pick(k,ex)};
+  $(BOX[k]).onclick=ev=>{const b=ev.target.closest("[data-v]");if(b)pick(k,b.dataset.v)};
+});
+$("#bFind").onclick=findByTyped;
+
+function goHome(){
+  if(S.fullMap){S.fullMap=false;$("#app").classList.remove("fullmap")}
+  if(picking){picking=false;$("#map").classList.remove("picking");$("#pickbar").classList.remove("show");$("#sheet").style.display="";if(pickM&&hasMap()){map.removeLayer(pickM);pickM=null}}
+  closeAll();
+  const a=curArea();
+  if(a){requestAnimationFrame(()=>{centerArea(a,true);triggerScan2Laps(a.lat,a.lng,getFarKm())})}
+  else if(hasMap()) map.setView([DEFAULT_BKK_AREA.lat,DEFAULT_BKK_AREA.lng],7,{animate:true});
+  if(hasMap()) setTimeout(()=>map.invalidateSize(),300);
+}
+document.querySelectorAll("[data-home]").forEach(b=>b.onclick=goHome);
+
+let lastGpsErr=null, gpsRequestInFlight=null;
+const GPS_MIN_DIST_KM=0.15, GPS_MIN_INTERVAL_MS=20000;
+function gpsErrMsg(e){
+  if(e&&e.code===1) return "ไม่ได้รับสิทธิ์ตำแหน่ง กรุณาอนุญาตการเข้าถึงตำแหน่ง (Location) ในเบราว์เซอร์";
+  if(e&&e.code===2) return "ไม่สามารถระบุตำแหน่งได้ กรุณาเปิด GPS (Location Services) ของอุปกรณ์";
+  if(e&&e.code===3) return "จับสัญญาณ GPS นานเกินไป ลองอยู่ในที่โล่งแล้วกดใหม่อีกครั้ง";
+  if(e&&e.code===-2) return "เบราว์เซอร์บล็อก GPS เพราะไม่ได้เปิดผ่าน HTTPS";
+  return "อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง GPS";
+}
+function getGpsExact(){
+  if(gpsRequestInFlight) return gpsRequestInFlight;
+  gpsRequestInFlight=new Promise((res,rej)=>{
+    if(!navigator.geolocation){rej({code:-1});return}
+    if(location.protocol!=="https:"&&location.hostname!=="localhost"&&location.hostname!=="127.0.0.1"){rej({code:-2});return}
+    let best=null, done=false, wid=null, timer=null;
+    const finish=(ok,val)=>{if(done)return;done=true;if(wid!==null)navigator.geolocation.clearWatch(wid);clearTimeout(timer);ok?res(val):rej(val)};
+    wid=navigator.geolocation.watchPosition(
+      p=>{const coord=sanitizeCoord(p.coords.latitude,p.coords.longitude);if(!coord)return;const cur={lat:coord.lat,lng:coord.lng,acc:p.coords.accuracy||50};if(!best||cur.acc<best.acc)best=cur;if(cur.acc<=30)finish(true,cur)},
+      e=>{if(!best)finish(false,e);else finish(true,best)},
+      {enableHighAccuracy:true,maximumAge:15000,timeout:15000}
+    );
+    timer=setTimeout(()=>{if(best)finish(true,best);else finish(false,{code:3})},9000);
+  }).finally(()=>{gpsRequestInFlight=null});
+  return gpsRequestInFlight;
+}
+function applyDevicePos(p,shouldFly,forceUpdate=false){
+  const coord=p&&sanitizeCoord(p.lat,p.lng);
+  if(!coord) return;
+  const now=Date.now(), prev=S.mePos;
+  const distKm=prev?hav(prev.lat,prev.lng,coord.lat,coord.lng):Infinity;
+  const elapsedMs=prev?(now-(prev.ts||0)):Infinity;
+  const fly=()=>{const meArea=activeAreas().find(x=>x.id===ME_ID);if(meArea)requestAnimationFrame(()=>{centerArea(meArea,true);triggerScan2Laps(meArea.lat,meArea.lng,getFarKm())})};
+  if(!forceUpdate&&prev&&distKm<GPS_MIN_DIST_KM&&elapsedMs<GPS_MIN_INTERVAL_MS){if(shouldFly)fly();return}
+  S.mePos={lat:coord.lat,lng:coord.lng,acc:p.acc||50,ts:now};
+  lastGpsErr=null;
+  if(!S.sel) S.sel=ME_ID;
+  renderMap();renderSheet();
+  if(shouldFly) fly();
+  if(distKm>0.05) fetchModelAndWind(activeRunId).then(()=>{recomputeOverallLastOkTime();renderSheet();renderMap();checkAlerts()}).catch(()=>{});
+}
+async function locateOnUserAction(){
+  toast("กำลังจับสัญญาณ GPS อุปกรณ์…");
+  try{const p=await getGpsExact();S.sel=ME_ID;store("ag.sel",ME_ID);applyDevicePos(p,true,true);toast(`ใช้ตำแหน่ง GPS ปัจจุบันแล้ว (±${Math.round(p.acc)} ม.)`)}
+  catch(e){lastGpsErr=e;renderSheet(true);toast(gpsErrMsg(e))}
+}
+$("#lLoc").onclick=locateOnUserAction;
+
+function applyTheme(){
+  document.documentElement.dataset.theme=S.set.theme;
+  $("#bTheme").textContent=S.set.theme==="dark"?"☀️":"🌙";
+  document.querySelectorAll("meta[name=theme-color]").forEach(x=>x.remove());
+  const m=document.createElement("meta");m.name="theme-color";m.content=S.set.theme==="dark"?"#0b1020":"#f4f7ff";document.head.append(m);
+  setTiles();
+}
+$("#bTheme").onclick=()=>{S.set.theme=S.set.theme==="dark"?"light":"dark";store("ag.set",S.set);applyTheme();renderMap()};
+[["#lPm","pm"],["#lFire","fire"],["#lWind","wind"]].forEach(([id,k])=>$(id).onclick=()=>{
+  S.lay[k]=!S.lay[k];$(id).setAttribute("aria-pressed",S.lay[k]);renderMap()});
+function syncLay(){
+  $("#lBase span").textContent=S.set.base==="sat"?"🗺️ แผนที่ถนน":"🛰️ ดาวเทียม";
+  $("#lGibs").setAttribute("aria-pressed",S.set.gibs);
+}
+$("#lBase").onclick=()=>{S.set.base=S.set.base==="sat"?"road":"sat";store("ag.set",S.set);syncLay();setTiles()};
+$("#lGibs").onclick=()=>{S.set.gibs=!S.set.gibs;store("ag.set",S.set);syncLay();setTiles();if(S.set.gibs)toast("ภาพ NASA เป็นภาพดาวเทียมรายวัน (ของเมื่อวาน) ซูมใกล้มากจะไม่คมชัด")};
+let tT;function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(tT);tT=setTimeout(()=>t.classList.remove("show"),2600)}
+
+/* ---------- เริ่มทำงาน ---------- */
+const sharedArea=applySharedAreaFromHash();
+if(!sharedArea&&S.sel!==ME_ID&&!S.areas.some(a=>String(a.id)===String(S.sel))){
+  S.sel=S.areas[0]?String(S.areas[0].id):DEFAULT_BKK_AREA.id;
+}
+setupPwa().catch(()=>{}); applyTheme(); syncLay(); updateBadge(); renderSheet(true); renderMap();
+if(lsCorrupt) toast("ตรวจพบข้อมูลที่บันทึกไว้เสียหายและล้างให้เรียบร้อยแล้ว");
+const initArea=curArea();
+if(initArea) requestAnimationFrame(()=>{centerArea(initArea,false);triggerScan2Laps(initArea.lat,initArea.lng,getFarKm())});
+refresh();
+restartRealtimeTimer();
+setInterval(()=>{if(!document.hidden&&!S.st.scanning)renderSheet()},60000);
+(window.requestIdleCallback||setTimeout)(loadPD,50);
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden){
+    if(!S.st.time||(Date.now()-S.st.time.getTime())>getRefreshMs()) refresh();
+    else renderSheet();
+  }
+});
+addEventListener("online",()=>{S.st.offline=false;toast("กลับมาออนไลน์แล้ว กำลังสแกน…");refresh(true)});
+addEventListener("offline",()=>{S.st.offline=true;setTiles();renderSheet(true);toast("ออฟไลน์ · แผนที่และข้อมูลสดอาจใช้ไม่ได้ แสดงแคชที่มี")});
+addEventListener("hashchange",()=>{const sa=applySharedAreaFromHash();if(sa)selectArea(sa.id)});
+addEventListener("resize",()=>{
+  if(hasMap()) map.invalidateSize();
+  const a=curArea();
+  if(a){centerArea(a,false);drawTrendChart(a.id)}
+});
+</script>
+</body>
+</html>
